@@ -8,7 +8,7 @@ class DashboardView {
     this.el = document.getElementById('view-dashboard');
   }
 
-  render(subjects, pages, tasks, calendar) {
+  render(subjects, pages, tasks, calendar, schedule = {}, focusSessions = 0) {
     const now   = new Date();
     const hour  = now.getHours();
     const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
@@ -20,6 +20,11 @@ class DashboardView {
     const upcoming = calendar
       .filter(e => e.date >= now.toISOString().slice(0,10))
       .sort((a,b) => a.date.localeCompare(b.date)).slice(0,5);
+
+    const totalMinutes = focusSessions * 25;
+    const timeStr = totalMinutes >= 60 
+      ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` 
+      : `${totalMinutes}min`;
 
     this.el.innerHTML = `
       <div class="view-content dashboard-content">
@@ -35,9 +40,10 @@ class DashboardView {
         <div class="stats-grid">
           ${this._stat('📚', subjects.length, 'Matérias', '#8B5CF6')}
           ${this._stat('📝', pages.length, 'Páginas', '#06B6D4')}
-          ${this._stat('✅', taskStats.done||0, 'Concluídas', '#10B981')}
-          ${this._stat('⏳', (taskStats.todo||0)+(taskStats.doing||0), 'Pendentes', '#F59E0B')}
+          ${this._stat('✅', taskStats.done||0, 'Tarefas Feitas', '#10B981')}
+          ${this._stat('⏱️', timeStr, 'Tempo Focado', '#EC4899')}
         </div>
+        ${subjects.length > 0 ? this._renderSchedule(subjects, schedule) : ''}
         ${subjects.length > 0 ? this._renderProgress(subjects, pages, tasks) : ''}
         <div class="dashboard-columns">
           ${recentPages.length > 0 ? this._renderRecent(recentPages, subjects) : ''}
@@ -46,12 +52,78 @@ class DashboardView {
         ${subjects.length === 0 ? `<div class="empty-state"><div class="empty-icon">🎓</div><h2>Comece agora!</h2><p>Crie sua primeira matéria na barra lateral.</p></div>` : ''}
       </div>`;
 
+    // Bind nav buttons
     this.el.querySelectorAll('[data-nav]').forEach(el => {
       el.addEventListener('click', e => {
         e.preventDefault();
         EventBus.emit('navigate', {view:el.dataset.nav, pageId:el.dataset.pageId, subjectId:el.dataset.subjectId});
       });
     });
+
+    // Bind schedule add clicks
+    this.el.querySelectorAll('.btn-add-schedule').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        EventBus.emit('ui:addScheduleSubject', { day: btn.dataset.day });
+      });
+    });
+
+    // Bind schedule remove clicks
+    this.el.querySelectorAll('.btn-remove-schedule').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const { day, subjectId } = btn.dataset;
+        EventBus.emit('ui:removeScheduleSubject', { day, subjectId });
+      });
+    });
+  }
+
+  _renderSchedule(subjects, schedule) {
+    const days = [
+      { key: 'mon', name: 'Seg' },
+      { key: 'tue', name: 'Ter' },
+      { key: 'wed', name: 'Qua' },
+      { key: 'thu', name: 'Qui' },
+      { key: 'fri', name: 'Sex' },
+      { key: 'sat', name: 'Sáb' },
+      { key: 'sun', name: 'Dom' }
+    ];
+
+    return `
+      <div class="dashboard-section schedule-section">
+        <h2 class="section-title">📅 Cronograma Semanal de Estudos</h2>
+        <div class="weekly-schedule-grid">
+          ${days.map(d => {
+            const daySubjectIds = schedule[d.key] || [];
+            const daySubjects = daySubjectIds
+              .map(id => subjects.find(s => s.id === id))
+              .filter(Boolean);
+
+            return `
+              <div class="schedule-day-card" data-day="${d.key}">
+                <div class="day-header">
+                  <span class="day-name">${d.name}</span>
+                  <button class="btn-icon btn-add-schedule" data-day="${d.key}" title="Agendar matéria">
+                    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                </div>
+                <div class="day-content">
+                  ${daySubjects.length === 0 
+                    ? '<span class="schedule-empty">Livre ✨</span>' 
+                    : daySubjects.map(s => `
+                      <div class="schedule-subject-badge" style="background: color-mix(in srgb, ${s.color} 10%, var(--bg-hover)); border-left: 3px solid ${s.color};">
+                        <span class="subj-tag">${s.emoji} ${s.name}</span>
+                        <button class="btn-remove-schedule" data-day="${d.key}" data-subject-id="${s.id}" title="Remover">&times;</button>
+                      </div>
+                    `).join('')
+                  }
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
   }
 
   _stat(icon, value, label, color) {

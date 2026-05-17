@@ -51,9 +51,11 @@ class AppController {
 
     const r = this._route;
     switch (r.view) {
-      case 'dashboard':
-        this.views.dashboard.render(subjects, pages, tasks, calendar);
+      case 'dashboard': {
+        const schedule = Storage.get('studySchedule') || { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
+        this.views.dashboard.render(subjects, pages, tasks, calendar, schedule, timerModel.session);
         break;
+      }
 
       case 'editor': {
         const page    = r.pageId ? pageModel.getById(r.pageId) : null;
@@ -252,6 +254,49 @@ class AppController {
       const msg = mode==='focus' ? '✅ Sessão de foco concluída!' : '🎯 Hora de focar!';
       this._toast(msg);
       if(this._route.view==='timer') this._renderTimer();
+    });
+
+    // ─ Study Schedule ─
+    EventBus.on('ui:addScheduleSubject', ({ day }) => {
+      const subjects = subjectModel.getAll();
+      if (subjects.length === 0) {
+        alert('Crie uma matéria na barra lateral primeiro para poder agendá-la.');
+        return;
+      }
+
+      this._openModal(`
+        <h2>Agendar Matéria</h2>
+        <p>Selecione a matéria para estudar neste dia:</p>
+        <select id="modal-pick-schedule-subject" class="select-input">
+          ${subjects.map(s => `<option value="${s.id}">${s.emoji} ${s.name}</option>`).join('')}
+        </select>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="modal-confirm">Adicionar</button>
+        </div>
+      `, () => {
+        document.getElementById('modal-confirm')?.addEventListener('click', () => {
+          const subjectId = document.getElementById('modal-pick-schedule-subject')?.value;
+          if (subjectId) {
+            const sched = Storage.get('studySchedule') || { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] };
+            if (!sched[day].includes(subjectId)) {
+              sched[day].push(subjectId);
+              Storage.set('studySchedule', sched);
+              this._toast('Matéria agendada com sucesso!');
+            }
+          }
+          this._closeModal();
+          this._render();
+        });
+      });
+    });
+
+    EventBus.on('ui:removeScheduleSubject', ({ day, subjectId }) => {
+      const sched = Storage.get('studySchedule') || { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] };
+      sched[day] = sched[day].filter(id => id !== subjectId);
+      Storage.set('studySchedule', sched);
+      this._toast('Matéria removida do cronograma.');
+      this._render();
     });
   }
 
