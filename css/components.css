@@ -65,6 +65,27 @@
 .dashboard-greeting h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; }
 .greeting-date { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
 
+.dashboard-clock {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  padding: 8px 24px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  transition: all var(--transition);
+}
+.dash-clock-time {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-family: 'Inter', monospace;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+
 .stats-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;
 }

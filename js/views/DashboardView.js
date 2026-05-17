@@ -23,9 +23,14 @@ class DashboardView {
 
     this.el.innerHTML = `
       <div class="view-content dashboard-content">
-        <div class="dashboard-greeting">
-          <h1>${greeting}! 👋</h1>
-          <p class="greeting-date">${now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+        <div class="dashboard-greeting" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 32px;">
+          <div>
+            <h1>${greeting}! 👋</h1>
+            <p class="greeting-date">${now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+          </div>
+          <div class="dashboard-clock" id="dashboard-clock" title="Hora atual">
+            <span class="dash-clock-time">00:00:00</span>
+          </div>
         </div>
         <div class="stats-grid">
           ${this._stat('📚', subjects.length, 'Matérias', '#8B5CF6')}

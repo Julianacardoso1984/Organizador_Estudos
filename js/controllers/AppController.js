@@ -16,6 +16,7 @@ class AppController {
     Storage.initDB().catch(e => console.warn('IndexedDB não disponível:', e));
     this._applyTheme();
     this._bindEvents();
+    this._startClock();
     this._render();
   }
 
@@ -513,6 +514,34 @@ class AppController {
 
   _closeModal() {
     document.getElementById('modal-overlay')?.classList.add('hidden');
+  }
+
+  _startClock() {
+    const update = () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('pt-BR', { hour12: false });
+      const dateStr = now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+      // Update sidebar clock
+      const sideClock = document.getElementById('sidebar-clock');
+      if (sideClock) {
+        const timeEl = sideClock.querySelector('.clock-time');
+        const dateEl = sideClock.querySelector('.clock-date');
+        if (timeEl) timeEl.textContent = timeStr;
+        if (dateEl) dateEl.textContent = dateStr;
+      }
+
+      // Update dashboard clock
+      const dashClock = document.getElementById('dashboard-clock');
+      if (dashClock) {
+        const timeEl = dashClock.querySelector('.dash-clock-time');
+        if (timeEl) timeEl.textContent = timeStr;
+      }
+    };
+
+    // Run immediately and then every second
+    update();
+    setInterval(update, 1000);
   }
 
   _toast(msg) {
