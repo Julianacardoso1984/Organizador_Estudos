@@ -5,11 +5,16 @@
  */
 class SubjectModel {
   constructor() {
-    this.subjects = Storage.get('subjects') || [];
-    const seeded  = Storage.get('app_seeded') || false;
-    if (this.subjects.length === 0 && !seeded) {
+    const raw = localStorage.getItem('subjects');
+    if (raw === null) {
+      this.subjects = [];
       this._seed();
-      Storage.set('app_seeded', true);
+    } else {
+      try {
+        this.subjects = JSON.parse(raw) || [];
+      } catch (e) {
+        this.subjects = [];
+      }
     }
   }
 
@@ -27,7 +32,6 @@ class SubjectModel {
     };
     this.subjects.push(subject);
     this._save();
-    Storage.set('app_seeded', true);
     EventBus.emit('subjects:updated', this.getAll());
     return subject;
   }
