@@ -1,0 +1,66 @@
+/* calendar.css — Estilos do calendário mensal */
+
+.calendar-content { padding: 32px 40px; overflow-y: auto; }
+
+.cal-nav {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px; justify-content: center;
+}
+.cal-month-title { font-size: 1.3rem; font-weight: 700; min-width: 220px; text-align: center; }
+
+.cal-grid {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px;
+}
+
+.cal-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  background: var(--bg-3); border-bottom: 1px solid var(--border);
+}
+.cal-weekday {
+  padding: 10px 8px; text-align: center;
+  font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+.cal-cells {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+}
+
+.cal-cell {
+  min-height: 100px; padding: 8px; border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  transition: background var(--transition);
+  position: relative;
+}
+.cal-cell:nth-child(7n) { border-right: none; }
+.cal-cell:hover { background: var(--bg-hover); }
+.cal-cell.cal-empty { background: var(--bg-3); cursor: default; }
+.cal-cell.today { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+
+.cal-day-num {
+  font-size: 0.83rem; font-weight: 500; color: var(--text-muted);
+  margin-bottom: 6px; width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+}
+.cal-day-num.today-num {
+  background: var(--accent); color: #fff; font-weight: 700;
+}
+
+.cal-events { display: flex; flex-direction: column; gap: 2px; }
+
+.cal-event-pill {
+  padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  transition: opacity var(--transition);
+}
+.cal-event-pill:hover { opacity: 0.8; }
+
+.cal-more {
+  font-size: 0.72rem; color: var(--text-dim); padding: 0 4px;
+}
+
+.cal-legend {
+  display: flex; align-items: center; gap: 20px;
+  font-size: 0.82rem; color: var(--text-muted);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }

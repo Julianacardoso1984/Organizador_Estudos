@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="EstudaAí — Organizador de estudos estilo Notion com editor de blocos, calendário, mapas mentais e upload de materiais.">
+  <title>EstudaAí — Organizador de Estudos</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- CSS (ordem importa: reset → tokens → layout → componentes → features → animações) -->
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/calendar.css">
+  <link rel="stylesheet" href="css/mindmap.css">
+  <link rel="stylesheet" href="css/animations.css">
+
+  <style>
+    /* Tiny inline tweaks */
+    [contenteditable]:focus { caret-color: var(--accent); }
+    ::selection { background: var(--accent)44; }
+  </style>
+</head>
+<body>
+
+  <!-- ── App Shell ─────────────────────────────────────────────────────────── -->
+  <div id="app-layout">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" aria-label="Barra lateral de navegação"></aside>
+
+    <!-- Main Content -->
+    <main id="main-content" aria-label="Conteúdo principal">
+
+      <!-- Dashboard -->
+      <section id="view-dashboard" aria-label="Dashboard" class="hidden"></section>
+
+      <!-- Editor de Blocos -->
+      <section id="view-editor" aria-label="Editor de página" class="hidden"></section>
+
+      <!-- Tarefas (Kanban) -->
+      <section id="view-tasks" aria-label="Tarefas" class="hidden"></section>
+
+      <!-- Calendário -->
+      <section id="view-calendar" aria-label="Calendário de estudos" class="hidden"></section>
+
+      <!-- Materiais -->
+      <section id="view-materials" aria-label="Materiais de estudo" class="hidden"></section>
+
+      <!-- Mapa Mental / Conceitual -->
+      <section id="view-mindmap" aria-label="Editor de mapa mental" class="hidden"></section>
+
+      <!-- Temporizador Pomodoro -->
+      <section id="view-timer" aria-label="Temporizador Pomodoro" class="hidden"></section>
+
+    </main>
+  </div>
+
+  <!-- ── Modal Global ───────────────────────────────────────────────────────── -->
+  <div id="modal-overlay" class="hidden" role="dialog" aria-modal="true">
+    <div class="modal-box" id="modal-box"></div>
+  </div>
+
+  <!-- ── JS: Utilitários (sem dependências) ────────────────────────────────── -->
+  <script src="js/utils/eventBus.js"></script>
+  <script src="js/utils/storage.js"></script>
+
+  <!-- ── JS: Models (dependem dos utils) ──────────────────────────────────── -->
+  <script src="js/models/SubjectModel.js"></script>
+  <script src="js/models/PageModel.js"></script>
+  <script src="js/models/TaskModel.js"></script>
+  <script src="js/models/TimerModel.js"></script>
+  <script src="js/models/CalendarModel.js"></script>
+  <script src="js/models/MaterialModel.js"></script>
+  <script src="js/models/MindMapModel.js"></script>
+
+  <!-- ── JS: Views (dependem dos models + eventBus) ────────────────────────── -->
+  <script src="js/views/SidebarView.js"></script>
+  <script src="js/views/DashboardView.js"></script>
+  <script src="js/views/EditorView.js"></script>
+  <script src="js/views/TaskView.js"></script>
+  <script src="js/views/TimerView.js"></script>
+  <script src="js/views/CalendarView.js"></script>
+  <script src="js/views/MaterialView.js"></script>
+  <script src="js/views/MindMapView.js"></script>
+
+  <!-- ── JS: Controller + Bootstrap ───────────────────────────────────────── -->
+  <script src="js/controllers/AppController.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
