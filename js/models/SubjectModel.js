@@ -6,7 +6,11 @@
 class SubjectModel {
   constructor() {
     this.subjects = Storage.get('subjects') || [];
-    if (this.subjects.length === 0) this._seed();
+    const seeded  = Storage.get('app_seeded') || false;
+    if (this.subjects.length === 0 && !seeded) {
+      this._seed();
+      Storage.set('app_seeded', true);
+    }
   }
 
   getAll() { return [...this.subjects]; }
@@ -23,6 +27,7 @@ class SubjectModel {
     };
     this.subjects.push(subject);
     this._save();
+    Storage.set('app_seeded', true);
     EventBus.emit('subjects:updated', this.getAll());
     return subject;
   }
