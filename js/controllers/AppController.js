@@ -298,6 +298,104 @@ class AppController {
       this._toast('Matéria removida do cronograma.');
       this._render();
     });
+
+    EventBus.on('ui:generateAIMindMap', ({ mapId }) => {
+      const { subjectModel, mindMapModel, materialModel } = this.models;
+      const map = mindMapModel.getById(mapId);
+      const subjectId = map?.subjectId;
+      const materials = materialModel.getBySubject(subjectId);
+      const savedKey = Storage.get('geminiAPIKey') || '';
+
+      let materialsOption = '';
+      if (materials && materials.length > 0) {
+        materialsOption = `
+          <div>
+            <label class="modal-label">📚 Basear no material de estudo (Opcional)</label>
+            <select id="modal-ai-material" class="select-input" style="width:100%;">
+              <option value="">Nenhum (usar Assunto/Tema digitado acima)</option>
+              ${materials.map(m => `<option value="${m.id}">${m.name} (${m.type.toUpperCase()})</option>`).join('')}
+            </select>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height: 1.4;">
+              A I.A irá analisar o conteúdo do arquivo selecionado (suporta PDF, imagens e textos) e criará o mapa com base no material!
+            </p>
+          </div>
+        `;
+      }
+
+      this._openModal(`
+        <h2>Gerar Mapa com Inteligência Artificial 🪄</h2>
+        <div style="display:flex; flex-direction:column; gap:16px; margin: 16px 0;">
+          <div>
+            <label class="modal-label">Assunto / Tema do Mapa</label>
+            <input id="modal-ai-prompt" class="modal-input" type="text" placeholder="Ex: Fotossíntese, Revolução Francesa, Programação Funcional..." maxlength="100" style="width:100%;">
+          </div>
+          ${materialsOption}
+          <div>
+            <label class="modal-label">Chave de API do Google Gemini (Opcional)</label>
+            <div style="display:flex; gap:8px;">
+              <input id="modal-ai-key" class="modal-input" type="password" placeholder="Cole sua chave API do Gemini aqui..." value="${savedKey}" style="flex:1;">
+              <a href="https://aistudio.google.com/" target="_blank" class="btn-ghost" style="text-decoration:none; display:flex; align-items:center; font-size:0.75rem; padding: 0 10px; border: 1px solid var(--border); border-radius:var(--radius-sm);">Obter chave grátis ↗</a>
+            </div>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height: 1.4;">
+              A chave é salva localmente e de forma segura apenas no seu navegador. Se deixada em branco, usaremos o <strong>Modo Simulação local</strong> para gerar um lindo mapa mental estruturado instantaneamente!
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="modal-confirm-ai" style="background:#8B5CF6;">Gerar Mapa ✨</button>
+        </div>
+      `, () => {
+        document.getElementById('modal-confirm-ai')?.addEventListener('click', async () => {
+          const prompt = document.getElementById('modal-ai-prompt')?.value.trim();
+          const apiKey = document.getElementById('modal-ai-key')?.value.trim();
+          const materialId = document.getElementById('modal-ai-material')?.value;
+
+          if (!prompt && !materialId) {
+            alert('Por favor, insira o assunto do mapa ou selecione um material de estudo.');
+            return;
+          }
+
+          Storage.set('geminiAPIKey', apiKey);
+
+          this._closeModal();
+          this._toast('🪄 Gerando mapa mental com I.A...');
+
+          try {
+            let result;
+            if (apiKey) {
+              let fileData = null;
+              if (materialId) {
+                const meta = materialModel.getById(materialId);
+                const blob = await materialModel.getBlob(materialId);
+                if (meta && blob) {
+                  const base64 = await this._blobToBase64(blob);
+                  fileData = { mimeType: meta.mimeType || blob.type, base64 };
+                }
+              }
+              const finalPrompt = prompt || (materialId ? `Conteúdo do arquivo ${materialModel.getById(materialId)?.name}` : '');
+              result = await this._fetchGeminiMindMap(finalPrompt, apiKey, fileData);
+            } else {
+              const subjectTitle = materialId 
+                ? materialModel.getById(materialId)?.name.split('.')[0]
+                : prompt;
+              result = this._generateLocalMockMap(subjectTitle);
+              this._toast('✨ Mapa gerado via simulação local! Para I.A real, adicione uma chave Gemini.');
+            }
+
+            if (result && result.nodes) {
+              mindMapModel.saveGraph(mapId, result.nodes, result.edges);
+              this._render();
+              this._toast('✅ Mapa mental gerado com sucesso!');
+            }
+          } catch (e) {
+            console.error(e);
+            alert('Falha ao gerar mapa mental: ' + e.message);
+          }
+        });
+        document.getElementById('modal-ai-prompt')?.focus();
+      });
+    });
   }
 
   _renderSidebar() {
@@ -595,5 +693,128 @@ class AppController {
     document.body.appendChild(t);
     setTimeout(() => t.classList.add('show'), 10);
     setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+  }
+
+  _blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async _fetchGeminiMindMap(prompt, apiKey, fileData = null) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    
+    const parts = [];
+    if (fileData) {
+      parts.push({
+        inlineData: {
+          mimeType: fileData.mimeType,
+          data: fileData.base64
+        }
+      });
+      parts.push({
+        text: `Gere um mapa mental completo e detalhado baseado ESTRITAMENTE no conteúdo deste material em anexo. 
+Retorne ESTRITAMENTE um objeto JSON válido, sem tags de marcação markdown como \`\`\`json ou texto introdutório, apenas o JSON puro.
+O JSON deve seguir esta estrutura exata:
+{
+  "nodes": [
+    {"id": "1", "text": "Tema central do material", "color": "#8B5CF6", "x": 0, "y": 0},
+    {"id": "2", "text": "Subtema A", "color": "#06B6D4", "x": -220, "y": -120},
+    {"id": "3", "text": "Subtema B", "color": "#10B981", "x": 220, "y": -120},
+    {"id": "4", "text": "Conceito A1", "color": "#3B82F6", "x": -370, "y": -220}
+  ],
+  "edges": [
+    {"from": "1", "to": "2"},
+    {"from": "1", "to": "3"},
+    {"from": "2", "to": "4"}
+  ]
+}
+Mantenha o mapa com 6 a 12 nós de estudo relevantes. Organize as coordenadas x e y para que os nós não fiquem sobrepostos. O nó central deve ficar em (0, 0) e os ramos secundários devem se espalhar em direções diferentes radialmente ou por níveis (com distâncias de 200px a 350px).`
+      });
+    } else {
+      parts.push({
+        text: `Gere um mapa mental completo sobre o seguinte assunto: "${prompt}". 
+Retorne ESTRITAMENTE um objeto JSON válido, sem tags de marcação markdown como \`\`\`json ou texto introdutório, apenas o JSON puro.
+O JSON deve seguir esta estrutura exata:
+{
+  "nodes": [
+    {"id": "1", "text": "Tema central", "color": "#8B5CF6", "x": 0, "y": 0},
+    {"id": "2", "text": "Subtema A", "color": "#06B6D4", "x": -220, "y": -120},
+    {"id": "3", "text": "Subtema B", "color": "#10B981", "x": 220, "y": -120},
+    {"id": "4", "text": "Conceito A1", "color": "#3B82F6", "x": -370, "y": -220}
+  ],
+  "edges": [
+    {"from": "1", "to": "2"},
+    {"from": "1", "to": "3"},
+    {"from": "2", "to": "4"}
+  ]
+}
+Mantenha o mapa com 6 a 12 nós de estudo relevantes. Organize as coordenadas x e y para que os nós não fiquem sobrepostos. O nó central deve ficar em (0, 0) e os ramos devem se espalhar em direções diferentes radialmente ou por níveis (com distâncias de 200px a 350px).`
+      });
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const textContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textContent) throw new Error('Resposta vazia da I.A.');
+
+    let cleanJSON = textContent.trim();
+    if (cleanJSON.startsWith('```')) {
+      cleanJSON = cleanJSON.replace(/^```json\s*/, '').replace(/```$/, '').trim();
+    }
+
+    return JSON.parse(cleanJSON);
+  }
+
+  _generateLocalMockMap(prompt) {
+    const colors = ['#8B5CF6','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899','#3B82F6'];
+    const nodes = [
+      { id: '1', text: prompt, color: colors[0], x: 0, y: 0, width: 140, height: 46 }
+    ];
+    const edges = [];
+    
+    const subtopics = [
+      { text: 'Definição & Conceito', x: -220, y: -120, color: colors[1], sub: ['Fundamentos', 'Significado'] },
+      { text: 'Aplicações Práticas', x: 220, y: -120, color: colors[2], sub: ['Exemplos Reais', 'Casos de Uso'] },
+      { text: 'Aspectos Históricos', x: -220, y: 120, color: colors[3], sub: ['Origem', 'Evolução'] },
+      { text: 'Importância & Impacto', x: 220, y: 120, color: colors[4], sub: ['Benefícios', 'Desafios'] }
+    ];
+
+    subtopics.forEach((t, i) => {
+      const subId = `sub_${i}`;
+      nodes.push({ id: subId, text: t.text, color: t.color, x: t.x, y: t.y, width: 130, height: 44 });
+      edges.push({ id: `e_${subId}`, from: '1', to: subId, label: '' });
+
+      t.sub.forEach((subSubText, j) => {
+        const subSubId = `sub_${i}_sub_${j}`;
+        const dx = t.x < 0 ? -160 : 160;
+        const dy = j === 0 ? -60 : 60;
+        nodes.push({ id: subSubId, text: subSubText, color: t.color, x: t.x + dx, y: t.y + dy, width: 120, height: 40 });
+        edges.push({ id: `e_${subSubId}`, from: subId, to: subSubId, label: '' });
+      });
+    });
+
+    return { nodes, edges };
   }
 }

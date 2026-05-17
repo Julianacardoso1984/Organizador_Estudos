@@ -60,6 +60,7 @@ class MindMapView {
             <button class="tool-btn danger" id="mm-delete-sel" title="Deletar selecionado (Del)">
               <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
             </button>
+            <button class="btn-primary btn-sm" style="background:#8B5CF6;" id="mm-ai-generate">🪄 Gerar com I.A</button>
             <button class="btn-primary btn-sm" id="mm-export">⬇ Exportar PNG</button>
           </div>
         </div>
@@ -243,6 +244,9 @@ class MindMapView {
     document.getElementById('mm-zoom-out')?.addEventListener('click',   () => { this._scale = Math.max(0.3, this._scale/1.2); });
     document.getElementById('mm-zoom-reset')?.addEventListener('click', () => { this._scale=1; this._offsetX=0; this._offsetY=0; });
     document.getElementById('mm-delete-sel')?.addEventListener('click', () => this._deleteSelected());
+    document.getElementById('mm-ai-generate')?.addEventListener('click', () => {
+      if (this._map) EventBus.emit('ui:generateAIMindMap', { mapId: this._map.id });
+    });
     document.getElementById('mm-export')?.addEventListener('click',     () => this._exportPNG());
 
     this.el.querySelectorAll('.color-dot').forEach(btn => {
