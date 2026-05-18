@@ -396,6 +396,17 @@ class AppController {
         document.getElementById('modal-ai-prompt')?.focus();
       });
     });
+
+    EventBus.on('ui:deleteMindMap', ({ mapId }) => {
+      const { mindMapModel } = this.models;
+      const map = mindMapModel.getById(mapId);
+      if (!map) return;
+      if (confirm(`Tem certeza que deseja excluir permanentemente o mapa mental "${map.name}"?`)) {
+        mindMapModel.delete(mapId);
+        this._toast('✅ Mapa mental excluído com sucesso.');
+        this._navigate('dashboard');
+      }
+    });
   }
 
   _renderSidebar() {

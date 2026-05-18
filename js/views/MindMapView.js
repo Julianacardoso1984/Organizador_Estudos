@@ -62,6 +62,10 @@ class MindMapView {
             </button>
             <button class="btn-primary btn-sm" style="background:#8B5CF6;" id="mm-ai-generate">🪄 Gerar com I.A</button>
             <button class="btn-primary btn-sm" id="mm-export">⬇ Exportar PNG</button>
+            <div class="tool-separator"></div>
+            <button class="tool-btn danger" id="mm-delete-map" title="Apagar mapa mental de vez" style="background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.25);">
+              <svg viewBox="0 0 24 24" style="stroke: #EF4444; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </button>
           </div>
         </div>
 
@@ -246,6 +250,9 @@ class MindMapView {
     document.getElementById('mm-delete-sel')?.addEventListener('click', () => this._deleteSelected());
     document.getElementById('mm-ai-generate')?.addEventListener('click', () => {
       if (this._map) EventBus.emit('ui:generateAIMindMap', { mapId: this._map.id });
+    });
+    document.getElementById('mm-delete-map')?.addEventListener('click', () => {
+      if (this._map) EventBus.emit('ui:deleteMindMap', { mapId: this._map.id });
     });
     document.getElementById('mm-export')?.addEventListener('click',     () => this._exportPNG());
 
