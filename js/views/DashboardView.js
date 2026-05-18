@@ -8,7 +8,7 @@ class DashboardView {
     this.el = document.getElementById('view-dashboard');
   }
 
-  render(subjects, pages, tasks, calendar, schedule = {}, focusSessions = 0) {
+  render(subjects, pages, tasks, calendar, schedule = {}, focusSessions = 0, courses = []) {
     const now   = new Date();
     const hour  = now.getHours();
     const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
@@ -45,6 +45,7 @@ class DashboardView {
         </div>
         ${subjects.length > 0 ? this._renderSchedule(subjects, schedule) : ''}
         ${subjects.length > 0 ? this._renderProgress(subjects, pages, tasks) : ''}
+        ${this._renderCourses(courses)}
         <div class="dashboard-columns">
           ${recentPages.length > 0 ? this._renderRecent(recentPages, subjects) : ''}
           ${upcoming.length > 0 ? this._renderUpcoming(upcoming, subjects) : ''}
@@ -74,6 +75,25 @@ class DashboardView {
         e.stopPropagation();
         const { day, subjectId } = btn.dataset;
         EventBus.emit('ui:removeScheduleSubject', { day, subjectId });
+      });
+    });
+
+    // Bind course platform buttons
+    this.el.querySelector('#btn-add-course')?.addEventListener('click', () => {
+      EventBus.emit('ui:addCoursePlatform');
+    });
+
+    this.el.querySelectorAll('.btn-delete-course').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        EventBus.emit('ui:deleteCoursePlatform', { courseId: btn.dataset.courseId });
+      });
+    });
+
+    this.el.querySelectorAll('.btn-open-platform').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        EventBus.emit('ui:openCoursePlatform', { courseId: btn.dataset.courseId });
       });
     });
   }
@@ -202,5 +222,44 @@ class DashboardView {
   _fmtDate(ds) {
     const [y,m,d]=ds.split('-');
     return new Date(y,m-1,d).toLocaleDateString('pt-BR',{day:'numeric',month:'short'});
+  }
+  _renderCourses(courses) {
+    return `
+      <div class="dashboard-section courses-section" style="margin-top:32px; margin-bottom:32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+          <h2 class="section-title" style="margin-bottom:0;">💻 Minhas Plataformas de Cursos</h2>
+          <button class="btn-primary btn-sm" id="btn-add-course" style="display:flex; align-items:center; gap:6px;">
+            <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar Plataforma
+          </button>
+        </div>
+        <div class="courses-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:20px;">
+          ${courses.length === 0 
+            ? `<div class="course-empty" style="grid-column: 1/-1; text-align:center; padding:40px 20px; background:var(--bg-card); border: 1px dashed var(--border); border-radius:var(--radius-md); color:var(--text-muted);">
+                 <p style="margin:0 0 8px 0; font-size:0.9rem; font-weight:600; color:var(--text);">Nenhuma plataforma cadastrada ainda.</p>
+                 <span style="font-size:0.75rem; color:var(--text-muted); line-height: 1.4; display:block; max-width:400px; margin:0 auto;">Adicione sites como Alura, Udemy, Coursera ou outros para estudar sem sair do aplicativo!</span>
+               </div>`
+            : courses.map(c => `
+              <div class="course-card" style="display:flex; flex-direction:column; justify-content:space-between; padding:20px; background:var(--bg-card); border: 1px solid var(--border); border-radius:var(--radius-md); transition: all 0.2s ease; position:relative; box-shadow: var(--shadow-sm);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+                  <span style="font-size:1.8rem; background:rgba(139, 92, 246, 0.12); padding:10px; border-radius:var(--radius-sm); line-height: 1; display: inline-flex; align-items: center; justify-content: center;">${c.emoji}</span>
+                  <button class="btn-icon btn-delete-course" data-course-id="${c.id}" style="color:var(--text-muted); padding:4px; margin:-4px -4px 0 0;" title="Excluir">
+                    <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                  </button>
+                </div>
+                <div style="margin-bottom:20px; flex:1;">
+                  <h3 style="margin:0 0 6px 0; font-size:1.05rem; font-weight:650; color:var(--text); line-height: 1.3;">${c.name}</h3>
+                  <p style="margin:0; font-size:0.75rem; color:var(--text-muted); word-break:break-all; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;" title="${c.url}">${c.url}</p>
+                </div>
+                <button class="btn-primary btn-sm btn-open-platform" data-course-id="${c.id}" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; font-weight:600; padding:10px;">
+                  <span>Estudar no App</span>
+                  <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round;"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+            `).join('')
+          }
+        </div>
+      </div>
+    `;
   }
 }

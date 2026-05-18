@@ -26,24 +26,31 @@ class AppController {
     // Destroy mind map RAF loop before leaving
     if (this._currentMindMapView) { this._currentMindMapView.destroy(); this._currentMindMapView = null; }
 
-    this._route = { view, subjectId: opts.subjectId||null, pageId: opts.pageId||null, mapId: opts.mapId||null };
+    this._route = { 
+      view, 
+      subjectId: opts.subjectId||null, 
+      pageId: opts.pageId||null, 
+      mapId: opts.mapId||null,
+      courseId: opts.courseId||null
+    };
     this._render();
   }
 
   _render() {
-    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel } = this.models;
+    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel } = this.models;
     const subjects   = subjectModel.getAll();
     const pages      = pageModel.getAll();
     const tasks      = taskModel.getAll();
     const calendar   = calendarModel.getAll();
     const materials  = materialModel.getAll();
     const mindMaps   = mindMapModel.getAll();
+    const courses    = courseModel.getAll();
 
     // Sidebar always visible
     this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route);
 
     // Show correct view
-    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer'];
+    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser'];
     allViews.forEach(v => {
       const el = document.getElementById(`view-${v}`);
       if (el) el.classList.toggle('hidden', v !== this._route.view);
@@ -53,7 +60,7 @@ class AppController {
     switch (r.view) {
       case 'dashboard': {
         const schedule = Storage.get('studySchedule') || { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
-        this.views.dashboard.render(subjects, pages, tasks, calendar, schedule, timerModel.session);
+        this.views.dashboard.render(subjects, pages, tasks, calendar, schedule, timerModel.session, courses);
         break;
       }
 
@@ -95,6 +102,17 @@ class AppController {
       case 'timer':
         this.views.timer.render(timerModel._state());
         break;
+
+      case 'platform-browser': {
+        // We get platform parameters from navigate (saved in route)
+        const course = r.courseId ? courseModel.getById(r.courseId) : null;
+        if (course) {
+          this.views.platformBrowser.render(course.name, course.url);
+        } else {
+          this.navigate('dashboard');
+        }
+        break;
+      }
     }
   }
 
@@ -406,6 +424,63 @@ class AppController {
         this._toast('✅ Mapa mental excluído com sucesso.');
         this._navigate('dashboard');
       }
+    });
+
+    EventBus.on('ui:addCoursePlatform', () => {
+      const { courseModel } = this.models;
+      this._openModal(`
+        <h2>Cadastrar Plataforma de Cursos 💻</h2>
+        <div style="display:flex; flex-direction:column; gap:16px; margin: 16px 0;">
+          <div>
+            <label class="modal-label">Nome da Plataforma</label>
+            <input id="modal-course-name" class="modal-input" type="text" placeholder="Ex: Alura, Udemy, Coursera, Hotmart..." maxlength="50" style="width:100%;">
+          </div>
+          <div>
+            <label class="modal-label">Link de Acesso (URL)</label>
+            <input id="modal-course-url" class="modal-input" type="text" placeholder="Ex: https://cursos.alura.com.br" style="width:100%;">
+          </div>
+          <div>
+            <label class="modal-label">Emoji / Ícone Representativo</label>
+            <input id="modal-course-emoji" class="modal-input" type="text" placeholder="Ex: 💻" value="💻" maxlength="5" style="width:100px;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="modal-confirm-course">Cadastrar Plataforma</button>
+        </div>
+      `, () => {
+        document.getElementById('modal-confirm-course')?.addEventListener('click', () => {
+          const name  = document.getElementById('modal-course-name')?.value.trim();
+          const url   = document.getElementById('modal-course-url')?.value.trim();
+          const emoji = document.getElementById('modal-course-emoji')?.value.trim() || '💻';
+
+          if (!name || !url) {
+            alert('Por favor, preencha o Nome e a URL da plataforma.');
+            return;
+          }
+
+          courseModel.create(name, url, emoji);
+          this._closeModal();
+          this._toast('✅ Plataforma cadastrada com sucesso!');
+          this._render();
+        });
+        document.getElementById('modal-course-name')?.focus();
+      });
+    });
+
+    EventBus.on('ui:deleteCoursePlatform', ({ courseId }) => {
+      const { courseModel } = this.models;
+      const course = courseModel.getById(courseId);
+      if (!course) return;
+      if (confirm(`Deseja remover a plataforma "${course.name}"?`)) {
+        courseModel.delete(courseId);
+        this._toast('🗑️ Plataforma removida com sucesso.');
+        this._render();
+      }
+    });
+
+    EventBus.on('ui:openCoursePlatform', ({ courseId }) => {
+      this.navigate('platform-browser', { courseId });
     });
   }
 

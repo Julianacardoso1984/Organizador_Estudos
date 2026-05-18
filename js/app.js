@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const calendarModel = new CalendarModel();
   const materialModel = new MaterialModel();
   const mindMapModel  = new MindMapModel();
+  const courseModel   = new CourseModel();
 
   // ── Views ─────────────────────────────────────────────────────────────────
   const sidebarView   = new SidebarView();
@@ -40,13 +41,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const calendarView  = new CalendarView();
   const materialsView = new MaterialView();
   const mindmapView   = new MindMapView();
+  const platformBrowserView = new PlatformBrowserView();
 
   // ── Controller ────────────────────────────────────────────────────────────
   const controller = new AppController(
-    { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel },
+    { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel },
     { sidebar: sidebarView, editor: editorView, dashboard: dashboardView,
       tasks: tasksView, timer: timerView, calendar: calendarView,
-      materials: materialsView, mindmap: mindmapView }
+      materials: materialsView, mindmap: mindmapView, platformBrowser: platformBrowserView }
   );
 
   // Expose for debug
