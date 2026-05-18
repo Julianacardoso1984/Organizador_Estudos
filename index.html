@@ -61,6 +61,12 @@
       <!-- Navegador de Plataformas (Embedded Browser) -->
       <section id="view-platform-browser" aria-label="Navegador de plataforma" class="hidden"></section>
 
+      <!-- Flashcards de Memorização -->
+      <section id="view-flashcards" aria-label="Flashcards de memorização" class="hidden"></section>
+
+      <!-- Quizzes e Simulados -->
+      <section id="view-quizzes" aria-label="Quizzes e simulados" class="hidden"></section>
+
     </main>
   </div>
 
@@ -72,6 +78,7 @@
   <!-- ── JS: Utilitários (sem dependências) ────────────────────────────────── -->
   <script src="js/utils/eventBus.js"></script>
   <script src="js/utils/storage.js"></script>
+  <script src="js/utils/ambientSound.js"></script>
 
   <!-- ── JS: Models (dependem dos utils) ──────────────────────────────────── -->
   <script src="js/models/SubjectModel.js"></script>
@@ -82,6 +89,8 @@
   <script src="js/models/MaterialModel.js"></script>
   <script src="js/models/MindMapModel.js"></script>
   <script src="js/models/CourseModel.js"></script>
+  <script src="js/models/FlashcardModel.js"></script>
+  <script src="js/models/QuizModel.js"></script>
 
   <!-- ── JS: Views (dependem dos models + eventBus) ────────────────────────── -->
   <script src="js/views/SidebarView.js"></script>
@@ -93,6 +102,8 @@
   <script src="js/views/MaterialView.js"></script>
   <script src="js/views/MindMapView.js"></script>
   <script src="js/views/PlatformBrowserView.js"></script>
+  <script src="js/views/FlashcardView.js"></script>
+  <script src="js/views/QuizView.js"></script>
 
   <!-- ── JS: Controller + Bootstrap ───────────────────────────────────────── -->
   <script src="js/controllers/AppController.js"></script>

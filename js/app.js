@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const materialModel = new MaterialModel();
   const mindMapModel  = new MindMapModel();
   const courseModel   = new CourseModel();
+  const flashcardModel = new FlashcardModel();
+  const quizModel      = new QuizModel();
 
   // ── Views ─────────────────────────────────────────────────────────────────
   const sidebarView   = new SidebarView();
@@ -42,13 +44,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const materialsView = new MaterialView();
   const mindmapView   = new MindMapView();
   const platformBrowserView = new PlatformBrowserView();
+  const flashcardView = new FlashcardView();
+  const quizView      = new QuizView();
 
   // ── Controller ────────────────────────────────────────────────────────────
   const controller = new AppController(
-    { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel },
+    { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel },
     { sidebar: sidebarView, editor: editorView, dashboard: dashboardView,
       tasks: tasksView, timer: timerView, calendar: calendarView,
-      materials: materialsView, mindmap: mindmapView, platformBrowser: platformBrowserView }
+      materials: materialsView, mindmap: mindmapView, platformBrowser: platformBrowserView,
+      flashcard: flashcardView, quiz: quizView }
   );
 
   // Expose for debug

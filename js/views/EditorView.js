@@ -25,7 +25,11 @@ class EditorView {
             <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
             <span>${page.title}</span>
           </div>
-          <div class="editor-actions">
+          <div class="editor-actions" style="display:flex; align-items:center; gap:8px;">
+            <button class="btn-ghost btn-sm" id="btn-record-voice" style="display:flex; align-items:center; gap:6px; font-weight:600;" title="Grave uma explicação ou aula para a I.A transcrever e resumir">
+              <span id="voice-record-icon">🎙️</span>
+              <span id="voice-record-label">Nota por Voz</span>
+            </button>
             <button class="btn-sm" id="btn-delete-page">🗑 Excluir</button>
           </div>
         </div>
@@ -99,6 +103,11 @@ class EditorView {
     // Delete page
     document.getElementById('btn-delete-page')?.addEventListener('click', () => {
       if (confirm('Excluir esta página?')) EventBus.emit('editor:deletePage', { pageId: this.page.id });
+    });
+
+    // Voice record toggle
+    document.getElementById('btn-record-voice')?.addEventListener('click', () => {
+      EventBus.emit('ui:toggleVoiceRecording', { pageId: this.page.id });
     });
 
     // Slash menu items
@@ -280,4 +289,27 @@ class EditorView {
   }
 
   _esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  setRecordingState(isRecording) {
+    const recordBtn = document.getElementById('btn-record-voice');
+    const icon = document.getElementById('voice-record-icon');
+    const label = document.getElementById('voice-record-label');
+    if (!recordBtn || !icon || !label) return;
+
+    if (isRecording) {
+      recordBtn.style.background = 'rgba(239, 68, 68, 0.15)';
+      recordBtn.style.borderColor = '#EF4444';
+      recordBtn.style.color = '#EF4444';
+      icon.textContent = '🔴';
+      icon.style.animation = 'pulse 1.2s infinite';
+      label.textContent = 'Parar Gravação';
+    } else {
+      recordBtn.style.background = '';
+      recordBtn.style.borderColor = '';
+      recordBtn.style.color = '';
+      icon.textContent = '🎙️';
+      icon.style.animation = '';
+      label.textContent = 'Nota por Voz';
+    }
+  }
 }

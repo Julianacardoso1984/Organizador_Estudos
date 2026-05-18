@@ -123,6 +123,16 @@ class SidebarView {
             Materiais ${subjectMats.length > 0 ? `<span class="badge-sm">${subjectMats.length}</span>` : ''}
           </a>
 
+          <a href="#" class="child-item child-special ${activeRoute.view === 'flashcards' && activeRoute.subjectId === s.id ? 'active' : ''}" data-nav="flashcards" data-subject-id="${s.id}">
+            <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17h6M9 13h6M9 9h6"/></svg>
+            Flashcards
+          </a>
+
+          <a href="#" class="child-item child-special ${activeRoute.view === 'quizzes' && activeRoute.subjectId === s.id ? 'active' : ''}" data-nav="quizzes" data-subject-id="${s.id}">
+            <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Simulados
+          </a>
+
           ${subjectMaps.map(mm => `
             <a href="#" class="child-item ${activeRoute.mapId === mm.id ? 'active' : ''}" data-nav="mindmap" data-map-id="${mm.id}" data-subject-id="${s.id}">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="6" y1="6" x2="9.5" y2="10"/><line x1="18" y1="6" x2="14.5" y2="10"/><line x1="6" y1="18" x2="9.5" y2="14"/><line x1="18" y1="18" x2="14.5" y2="14"/></svg>

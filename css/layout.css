@@ -335,3 +335,45 @@ body {
   background: #fff;
 }
 
+/* ── ESTILOS PREMIUM UPGRADE ── */
+
+/* 🎙️ Nota de Voz: Animação de Gravação */
+@keyframes pulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.4)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.7)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.4)); }
+}
+
+/* 🗂️ Flashcards: Efeito 3D Flip */
+.flashcard-card-3d.flipped {
+  transform: rotateY(180deg) !important;
+}
+
+.flashcard-face {
+  box-sizing: border-box;
+}
+
+/* 🧠 Quizzes: Efeitos de Hover, Seleção e Animação */
+.quiz-option-card {
+  user-select: none;
+}
+
+.quiz-option-card:hover:not(.locked) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent) !important;
+  background: rgba(139, 92, 246, 0.04) !important;
+}
+
+.quiz-option-card:active:not(.locked) {
+  transform: translateY(0);
+}
+
+.quiz-option-card.locked {
+  cursor: default;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

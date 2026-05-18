@@ -13,6 +13,14 @@ class AppController {
     this._theme   = Storage.get('theme') || 'dark';
     this._currentMindMapView = null;
 
+    // Sons Ambientes
+    this.ambientSound = new AmbientSoundSynthesizer();
+
+    // Gravação de Notas por Voz
+    this._mediaRecorder = null;
+    this._audioChunks = [];
+    this._isRecordingVoice = false;
+
     Storage.initDB().catch(e => console.warn('IndexedDB não disponível:', e));
     this._applyTheme();
     this._bindEvents();
@@ -37,7 +45,7 @@ class AppController {
   }
 
   _render() {
-    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel } = this.models;
+    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel } = this.models;
     const subjects   = subjectModel.getAll();
     const pages      = pageModel.getAll();
     const tasks      = taskModel.getAll();
@@ -45,12 +53,14 @@ class AppController {
     const materials  = materialModel.getAll();
     const mindMaps   = mindMapModel.getAll();
     const courses    = courseModel.getAll();
+    const flashcards = flashcardModel.getAll();
+    const quizzes    = quizModel.getAll();
 
     // Sidebar always visible
     this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route);
 
     // Show correct view
-    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser'];
+    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes'];
     allViews.forEach(v => {
       const el = document.getElementById(`view-${v}`);
       if (el) el.classList.toggle('hidden', v !== this._route.view);
@@ -111,6 +121,21 @@ class AppController {
         } else {
           this.navigate('dashboard');
         }
+        break;
+      }
+
+      case 'flashcards': {
+        const subject = r.subjectId ? subjectModel.getById(r.subjectId) : null;
+        const filtered = r.subjectId ? flashcardModel.getBySubject(r.subjectId) : [];
+        this.views.flashcard.render(filtered, subject, subjects);
+        break;
+      }
+
+      case 'quizzes': {
+        const subject = r.subjectId ? subjectModel.getById(r.subjectId) : null;
+        const filtered = r.subjectId ? quizModel.getBySubject(r.subjectId) : quizzes;
+        const subMats = r.subjectId ? materialModel.getBySubject(r.subjectId) : [];
+        this.views.quiz.render(filtered, subject, subjects, subMats);
         break;
       }
     }
@@ -481,6 +506,112 @@ class AppController {
 
     EventBus.on('ui:openCoursePlatform', ({ courseId }) => {
       this.navigate('platform-browser', { courseId });
+    });
+
+    // ─ Sons Ambientes ─
+    EventBus.on('sound:toggle', ({ type }) => {
+      const isPlaying = this.ambientSound.toggle(type);
+      this.views.timer._playingSounds[type] = isPlaying;
+      this.views.timer.render(this.models.timerModel._state());
+    });
+
+    EventBus.on('sound:volume', ({ type, value }) => {
+      this.ambientSound.setVolume(type, value);
+      this.views.timer._soundVolumes[type] = parseFloat(value);
+    });
+
+    // ─ Flashcards ─
+    EventBus.on('ui:createFlashcard', ({ subjectId, front, back }) => {
+      const { flashcardModel } = this.models;
+      flashcardModel.create(subjectId, front, back);
+      this._toast('✅ Flashcard adicionado com sucesso!');
+      this._render();
+    });
+
+    EventBus.on('ui:deleteFlashcard', ({ id, subjectId }) => {
+      const { flashcardModel } = this.models;
+      flashcardModel.delete(id);
+      this._toast('🗑️ Flashcard excluído com sucesso.');
+      this._render();
+    });
+
+    EventBus.on('ui:scoreFlashcard', ({ cardId, isCorrect, subjectId }) => {
+      const { flashcardModel } = this.models;
+      flashcardModel.score(cardId, isCorrect);
+      this._toast(isCorrect ? '🟢 Memorizado! Avançando caixa Leitner.' : '❌ Ops! Retornando para a caixa #1.');
+      this._render();
+    });
+
+    // ─ Simulados & Quizzes ─
+    EventBus.on('ui:openModalQuiz', ({ html, callback }) => {
+      this._openModal(html, callback);
+    });
+
+    EventBus.on('ui:startQuizSession', ({ quizId, subjectId }) => {
+      const { quizModel } = this.models;
+      const quiz = quizModel.getById(quizId);
+      if (quiz) {
+        this.views.quiz.startSession(quiz);
+        this.navigate('quizzes', { subjectId });
+      }
+    });
+
+    EventBus.on('ui:deleteQuiz', ({ quizId, subjectId }) => {
+      const { quizModel } = this.models;
+      quizModel.delete(quizId);
+      this._toast('🗑️ Simulado excluído.');
+      this._render();
+    });
+
+    EventBus.on('ui:saveQuizScore', ({ quizId, score, subjectId }) => {
+      const { quizModel } = this.models;
+      quizModel.saveScore(quizId, score);
+    });
+
+    EventBus.on('ui:generateAIQuiz', async ({ subjectId, theme, materialId }) => {
+      const { quizModel, materialModel, subjectModel } = this.models;
+      const subject = subjectModel.getById(subjectId);
+      
+      this._closeModal();
+      this._toast('🪄 Gerando simulado por I.A...');
+
+      let materialFile = null;
+      if (materialId) {
+        materialFile = materialModel.getById(materialId);
+      }
+
+      const apiKey = localStorage.getItem('gemini_api_key') || '';
+      let quizData = null;
+
+      if (apiKey) {
+        try {
+          quizData = await this._fetchGeminiQuiz(theme, apiKey, materialFile);
+        } catch (e) {
+          console.warn('Erro ao chamar API Gemini para Quiz:', e);
+        }
+      }
+
+      if (!quizData) {
+        quizData = this._generateLocalMockQuiz(theme);
+        this._toast('✨ Simulado gerado localmente! Adicione chave Gemini para I.A real.');
+      }
+
+      if (quizData && quizData.questions) {
+        quizModel.create(subjectId, `Simulado I.A: ${theme}`, quizData.questions);
+        this._toast('✅ Simulado gerado com sucesso!');
+        this._render();
+      } else {
+        alert('Não foi possível gerar o simulado. Tente novamente.');
+      }
+    });
+
+    // ─ Notas por Voz ─
+    EventBus.on('ui:toggleVoiceRecording', async ({ pageId }) => {
+      if (this._isRecordingVoice) {
+        this._stopVoiceRecording(pageId);
+      } else {
+        this._startVoiceRecording(pageId);
+      }
     });
   }
 
@@ -902,5 +1033,238 @@ Mantenha o mapa com 6 a 12 nós de estudo relevantes. Organize as coordenadas x 
     });
 
     return { nodes, edges };
+  }
+
+  // ── MÉTODOS AUXILIARES: QUIZZES & TRANSCRICÃO POR VOZ ──
+
+  async _fetchGeminiQuiz(theme, apiKey, materialFile) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    
+    let prompt = `Você é um gerador de provas e quizzes de alto nível cognitivo.
+Gere um quiz com exatamente 5 perguntas objetivas de múltipla escolha sobre o tema: "${theme}".
+Retorne estritamente um objeto JSON com o formato:
+{
+  "questions": [
+    {
+      "question": "Texto da pergunta",
+      "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
+      "answerIndex": 0,
+      "explanation": "Explicação teórica de por que a resposta A é a correta."
+    }
+  ]
+}
+Forneça explicações detalhadas e didáticas para cada gabarito.`;
+
+    const parts = [{ text: prompt }];
+
+    if (materialFile) {
+      const blob = await Storage.getFile(materialFile.fileId);
+      if (blob) {
+        const base64 = await this._blobToBase64(blob);
+        const mimeType = blob.type || 'application/pdf';
+        parts.unshift({
+          inlineData: {
+            mimeType,
+            data: base64
+          }
+        });
+        prompt += `\nBaseie as perguntas estritamente no material fornecido em anexo.`;
+        parts[parts.length - 1].text = prompt;
+      }
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Resposta vazia');
+    text = text.trim();
+    if (text.startsWith('```')) {
+      text = text.replace(/^```json\s*/, '').replace(/```$/, '').trim();
+    }
+    return JSON.parse(text);
+  }
+
+  _generateLocalMockQuiz(theme) {
+    return {
+      questions: [
+        {
+          question: `Qual conceito melhor define "${theme}" do ponto de vista conceitual básico?`,
+          options: [
+            'Uma abordagem superficial de estudo sem retenção.',
+            'Um princípio fundamental focado em estruturação teórica e aplicação prática.',
+            'Um método obsoleto de decoreba rápida.',
+            'Um sistema voltado exclusivamente para exames de certificação internacional.'
+          ],
+          answerIndex: 1,
+          explanation: `Este simulado local foi estruturado para consolidar o estudo de ${theme}, focando nos pilares teóricos fundamentais do tema.`
+        },
+        {
+          question: `Qual dos seguintes é um benefício crucial ao dominar "${theme}"?`,
+          options: [
+            'Aumento da velocidade de digitação em teclados mecânicos.',
+            'Melhoria na capacidade de resolução de problemas complexos na área.',
+            'Eliminação completa de qualquer necessidade de revisão futura.',
+            'Nenhuma das alternativas anteriores.'
+          ],
+          answerIndex: 1,
+          explanation: `Estudar e dominar ${theme} expande diretamente o repertório de conexões neurais e habilidades de resolução de problemas na matéria.`
+        },
+        {
+          question: `Qual é o erro mais comum ao iniciar os estudos de "${theme}"?`,
+          options: [
+            'Estudar com consistência diária dividindo os tópicos.',
+            'Avançar para conceitos avançados sem solidificar a base teórica.',
+            'Usar flashcards de repetição espaçada.',
+            'Realizar exercícios práticos frequentes.'
+          ],
+          answerIndex: 1,
+          explanation: `Sem consolidar a base sobre ${theme}, tentar absorver técnicas avançadas pode levar a gaps de conhecimento e frustrações.`
+        }
+      ]
+    };
+  }
+
+  async _startVoiceRecording(pageId) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Seu navegador não oferece suporte a gravação de áudio.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this._audioChunks = [];
+      this._mediaRecorder = new MediaRecorder(stream);
+      
+      this._mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this._audioChunks.push(e.data);
+      };
+
+      this._mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(this._audioChunks, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await this._transcribeAndSummarizeVoice(audioBlob, pageId);
+      };
+
+      this._mediaRecorder.start();
+      this._isRecordingVoice = true;
+      this.views.editor.setRecordingState(true);
+      this._toast('🎙️ Gravando áudio... Clique novamente para parar.');
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao acessar microfone: ' + e.message);
+    }
+  }
+
+  _stopVoiceRecording(pageId) {
+    if (this._mediaRecorder && this._isRecordingVoice) {
+      this._mediaRecorder.stop();
+      this._isRecordingVoice = false;
+      this.views.editor.setRecordingState(false);
+      this._toast('⏳ Processando gravação com I.A...');
+    }
+  }
+
+  async _transcribeAndSummarizeVoice(audioBlob, pageId) {
+    const apiKey = localStorage.getItem('gemini_api_key') || '';
+    const { pageModel } = this.models;
+    const page = pageModel.getById(pageId);
+    if (!page) return;
+
+    let markdownResult = '';
+
+    if (apiKey) {
+      try {
+        const base64 = await this._blobToBase64(audioBlob);
+        markdownResult = await this._fetchGeminiVoiceTranscription(base64, apiKey);
+      } catch (e) {
+        console.warn('Erro na transcrição Gemini Voice:', e);
+      }
+    }
+
+    if (!markdownResult) {
+      markdownResult = `### 🎙️ Transcrição & Resumo por Voz (Simulação Local)
+
+Aqui está um resumo executivo da gravação efetuada:
+- **Tópico Principal**: Discussão de metodologias e técnicas de estudo ativo de alta retenção.
+- **Tópicos Detalhados**:
+  - *Técnica Feynman*: Explicar conceitos complexos com termos simples para consolidar lacunas cognitivas.
+  - *Prática Distribuída*: Distribuir sessões de estudo ao longo do tempo em vez de acumular tudo em um único dia.
+  
+> [!NOTE]
+> *Adicione sua chave Gemini API real nas configurações do mapa mental para transcrever seus áudios literalmente com inteligência multimodal avançada!*`;
+      this._toast('✨ Nota de voz gerada via simulação local!');
+    }
+
+    if (markdownResult) {
+      const lines = markdownResult.split('\n');
+      const newBlocks = lines.map(line => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('### ')) {
+          return { id: _uuid(), type: 'h3', content: trimmed.replace('### ', ''), checked: false };
+        } else if (trimmed.startsWith('## ')) {
+          return { id: _uuid(), type: 'h2', content: trimmed.replace('## ', ''), checked: false };
+        } else if (trimmed.startsWith('# ')) {
+          return { id: _uuid(), type: 'h1', content: trimmed.replace('# ', ''), checked: false };
+        } else if (trimmed.startsWith('- ')) {
+          return { id: _uuid(), type: 'bullet', content: trimmed.replace('- ', ''), checked: false };
+        } else if (trimmed.startsWith('> ')) {
+          return { id: _uuid(), type: 'quote', content: trimmed.replace('> ', ''), checked: false };
+        } else if (trimmed !== '') {
+          return { id: _uuid(), type: 'text', content: trimmed, checked: false };
+        }
+        return null;
+      }).filter(Boolean);
+
+      page.blocks.push(...newBlocks);
+      pageModel.update(page.id, page.title, page.blocks);
+      this._toast('✅ Nota de voz integrada ao caderno!');
+      this._render();
+    }
+  }
+
+  async _fetchGeminiVoiceTranscription(base64, apiKey) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    
+    const prompt = `Você é um anotador e assistente de estudos profissional.
+Ouça com extrema atenção a esta gravação de áudio de uma aula ou explicação gravada pelo estudante.
+Transcreva fielmente os pontos mais importantes e monte um resumo executivo ultra-estruturado em formato Markdown.
+Use títulos, sub-títulos, listas (bullet points) e citações para destacar conceitos críticos.
+Retorne estritamente o texto formatado em Markdown, sem nenhuma introdução ou metatexto adicional.`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              inlineData: {
+                mimeType: "audio/webm",
+                data: base64
+              }
+            },
+            { text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!response.ok) throw new Error('API Gemini respondeu com erro');
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 }
