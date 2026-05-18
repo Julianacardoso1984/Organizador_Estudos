@@ -41,7 +41,11 @@ class DashboardView {
           ${this._stat('📚', subjects.length, 'Matérias', '#8B5CF6')}
           ${this._stat('📝', pages.length, 'Páginas', '#06B6D4')}
           ${this._stat('✅', taskStats.done||0, 'Tarefas Feitas', '#10B981')}
-          ${this._stat('⏱️', timeStr, 'Tempo Focado', '#EC4899')}
+          ${this._stat('⏱️', timeStr, 'Tempo Focado', '#EC4899', `
+            <button id="btn-reset-focus-time" style="background: none; border: none; padding: 2px 6px; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; border-radius: 4px; transition: all 0.2s;" title="Zerar tempo focado" onmouseover="this.style.color='var(--accent)';" onmouseout="this.style.color='var(--text-muted)';">
+              <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </button>
+          `)}
         </div>
         ${subjects.length > 0 ? this._renderSchedule(subjects, schedule) : ''}
         ${subjects.length > 0 ? this._renderProgress(subjects, pages, tasks) : ''}
@@ -96,6 +100,14 @@ class DashboardView {
         EventBus.emit('ui:openCoursePlatform', { courseId: btn.dataset.courseId });
       });
     });
+
+    // Zerar sessões de foco
+    this.el.querySelector('#btn-reset-focus-time')?.addEventListener('click', e => {
+      e.stopPropagation();
+      if (confirm('Deseja zerar o tempo total focado nas estatísticas?')) {
+        EventBus.emit('ui:resetFocusSessions');
+      }
+    });
   }
 
   _renderSchedule(subjects, schedule) {
@@ -146,10 +158,16 @@ class DashboardView {
     `;
   }
 
-  _stat(icon, value, label, color) {
-    return `<div class="stat-card" style="--accent:${color}">
+  _stat(icon, value, label, color, actionHtml = '') {
+    return `<div class="stat-card" style="--accent:${color}; position: relative;">
       <div class="stat-icon">${icon}</div>
-      <div class="stat-info"><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>
+      <div class="stat-info">
+        <div class="stat-value" style="display:flex; align-items:center; gap:8px;">
+          <span>${value}</span>
+          ${actionHtml}
+        </div>
+        <div class="stat-label">${label}</div>
+      </div>
     </div>`;
   }
 

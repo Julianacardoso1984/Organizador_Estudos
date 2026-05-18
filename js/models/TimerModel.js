@@ -89,6 +89,12 @@ class TimerModel {
     } catch (_) { /* AudioContext pode não estar disponível */ }
   }
 
+  resetFocusSessions() {
+    this.session = 0;
+    Storage.set('pomodoroStats', { session: 0 });
+    EventBus.emit('timer:tick', this._state());
+  }
+
   _state() {
     return {
       mode:      this.mode,

@@ -60,7 +60,7 @@ class AppController {
     this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route);
 
     // Show correct view
-    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes'];
+    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes','notes'];
     allViews.forEach(v => {
       const el = document.getElementById(`view-${v}`);
       if (el) el.classList.toggle('hidden', v !== this._route.view);
@@ -78,6 +78,13 @@ class AppController {
         const page    = r.pageId ? pageModel.getById(r.pageId) : null;
         const subject = page ? subjectModel.getById(page.subjectId) : null;
         if (page) this.views.editor.render(page, subject);
+        break;
+      }
+
+      case 'notes': {
+        const subject = r.subjectId ? subjectModel.getById(r.subjectId) : null;
+        const filtered = r.subjectId ? pageModel.getBySubject(r.subjectId) : pages;
+        this.views.notes.render(filtered, subject, subjects);
         break;
       }
 
@@ -204,8 +211,13 @@ class AppController {
 
     EventBus.on('editor:deletePage', ({ pageId }) => {
       const page = pageModel.getById(pageId);
+      const subjectId = page?.subjectId;
       pageModel.delete(pageId);
-      this.navigate('dashboard');
+      if (subjectId) {
+        this.navigate('notes', { subjectId });
+      } else {
+        this.navigate('dashboard');
+      }
     });
 
     EventBus.on('pages:updated', () => this._renderSidebar());
@@ -297,6 +309,12 @@ class AppController {
       const msg = mode==='focus' ? '✅ Sessão de foco concluída!' : '🎯 Hora de focar!';
       this._toast(msg);
       if(this._route.view==='timer') this._renderTimer();
+    });
+
+    EventBus.on('ui:resetFocusSessions', () => {
+      this.models.timerModel.resetFocusSessions();
+      this._toast('🔄 Tempo focado zerado com sucesso!');
+      this._render();
     });
 
     // ─ Study Schedule ─
