@@ -27,6 +27,16 @@ class AppController {
     this._bindEvents();
     this._startClock();
     this._render();
+
+    // Handle Spotify OAuth callback
+    if (window.location.search.includes('code=') && window.location.search.includes('state=spotify_auth')) {
+      Spotify.handleCallback().then(success => {
+        if (success) {
+          this._toast('🟢 Spotify conectado com sucesso!');
+          this.navigate('integrations');
+        }
+      });
+    }
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
@@ -802,6 +812,40 @@ class AppController {
       this._toast('Playlist do Spotify salva!');
       this._render();
     });
+
+    // Spotify OAuth events
+    EventBus.on('ui:spotifyLogin', async ({ clientId }) => {
+      try {
+        Spotify.saveClientId(clientId);
+        await Spotify.login();
+      } catch (e) {
+        alert('Erro ao iniciar login com Spotify: ' + e.message);
+      }
+    });
+
+    EventBus.on('ui:spotifyLogout', () => {
+      Spotify.logout();
+      this._toast('Spotify desconectado.');
+      this._render();
+    });
+
+    EventBus.on('ui:loadSpotifyPlaylists', async () => {
+      try {
+        this._toast('🎵 Carregando suas playlists...');
+        const playlists = await Spotify.getUserPlaylists();
+        this.views.integrations.render(playlists);
+      } catch (e) {
+        alert('Erro ao carregar playlists: ' + e.message);
+      }
+    });
+
+    EventBus.on('ui:selectSpotifyPlaylist', ({ id, name }) => {
+      const embedUrl = `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
+      Spotify.saveSelectedPlaylist(id, name, embedUrl);
+      this._toast(`🎵 Playlist "${name}" selecionada!`);
+      this._render();
+    });
+
 
     EventBus.on('ui:syncGoogleCalendar', async () => {
       if (!GoogleCalendar.isAuthenticated()) {
