@@ -64,3 +64,118 @@
 }
 .legend-item { display: flex; align-items: center; gap: 6px; }
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Painel de Sincronização Google Calendar ── */
+.gcal-integration-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition);
+}
+
+.gcal-integration-card:focus-within {
+  border-color: var(--accent);
+}
+
+.gcal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gcal-logo {
+  font-size: 1.8rem;
+}
+
+.gcal-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gcal-title h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.gcal-title p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.gcal-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.gcal-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.gcal-input-group label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.gcal-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 0.88rem;
+  transition: border-color var(--transition);
+}
+
+.gcal-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.gcal-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.gcal-status-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gcal-status-badge.connected {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+}
+
+.gcal-status-badge.disconnected {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+}
+
+/* Indicador de evento do Google Calendar */
+.cal-event-pill.gcal-event {
+  border-left: 3px solid #4285F4;
+  background: rgba(66, 133, 244, 0.1) !important;
+  color: #4285F4 !important;
+}

@@ -20,6 +20,7 @@ class AppController {
     this._mediaRecorder = null;
     this._audioChunks = [];
     this._isRecordingVoice = false;
+    this._gcalEvents = [];
 
     Storage.initDB().catch(e => console.warn('IndexedDB não disponível:', e));
     this._applyTheme();
@@ -96,7 +97,7 @@ class AppController {
       }
 
       case 'calendar':
-        this.views.calendar.render(calendar, subjects);
+        this._renderCalendarView();
         break;
 
       case 'materials': {
@@ -684,6 +685,54 @@ class AppController {
       };
       reader.readAsText(file);
     });
+
+    // ─ Google Calendar ─
+    EventBus.on('ui:changeGCalClientId', ({ clientId }) => {
+      GoogleCalendar.setClientId(clientId);
+      this._toast('ID do Cliente Google salvo.');
+    });
+
+    EventBus.on('ui:connectGoogleCalendar', async () => {
+      try {
+        this._toast('Conectando ao Google Calendar...');
+        await GoogleCalendar.connect();
+        this._toast('🟢 Conectado com sucesso!');
+        this._render();
+        await this._syncAllLocalEventsToGoogle();
+        await this._fetchAndRenderGCal();
+      } catch (e) {
+        console.error(e);
+        alert('Erro ao conectar com Google Calendar: ' + e.message);
+        this._render();
+      }
+    });
+
+    EventBus.on('ui:disconnectGoogleCalendar', () => {
+      GoogleCalendar.disconnect();
+      this._gcalEvents = [];
+      this._toast('🔴 Desconectado do Google.');
+      this._render();
+    });
+
+    EventBus.on('ui:syncGoogleCalendar', async () => {
+      if (!GoogleCalendar.isAuthenticated()) {
+        alert('Por favor, conecte sua conta Google primeiro.');
+        return;
+      }
+      try {
+        this._toast('🔄 Sincronizando eventos...');
+        await this._syncAllLocalEventsToGoogle();
+        await this._fetchAndRenderGCal();
+        this._toast('✅ Sincronização concluída!');
+      } catch (e) {
+        console.error(e);
+        alert('Erro na sincronização: ' + e.message);
+      }
+    });
+
+    EventBus.on('calendar:monthChanged', async ({ year, month }) => {
+      await this._fetchAndRenderGCal();
+    });
   }
 
   _renderSidebar() {
@@ -833,16 +882,23 @@ class AppController {
         const subject = subjectId ? this.models.subjectModel.getById(subjectId) : null;
         const typeColors = { study:'#8B5CF6', review:'#06B6D4', exam:'#EF4444', deadline:'#F59E0B' };
         const color = subject?.color || typeColors[type] || '#8B5CF6';
+        let savedEvent;
         if (existing) {
-          this.models.calendarModel.update(existing.id, { title, date:evDate, type, subjectId, duration, notes, color });
+          savedEvent = this.models.calendarModel.update(existing.id, { title, date:evDate, type, subjectId, duration, notes, color });
         } else {
-          this.models.calendarModel.create({ title, date:evDate, type, subjectId, duration, notes, color });
+          savedEvent = this.models.calendarModel.create({ title, date:evDate, type, subjectId, duration, notes, color });
+        }
+        if (savedEvent) {
+          this._syncLocalEventToGoogle(savedEvent);
         }
         this._closeModal();
         if (this._route.view==='calendar') this._render();
       });
       document.getElementById('modal-delete')?.addEventListener('click', () => {
         if (existing && confirm('Excluir evento?')) {
+          if (existing.googleEventId && GoogleCalendar.isAuthenticated()) {
+            GoogleCalendar.deleteEvent(existing.googleEventId).catch(err => console.error(err));
+          }
           this.models.calendarModel.delete(existing.id);
           this._closeModal();
           if (this._route.view==='calendar') this._render();
@@ -1337,5 +1393,103 @@ Retorne estritamente o texto formatado em Markdown, sem nenhuma introdução ou 
     if (!response.ok) throw new Error('API Gemini respondeu com erro');
     const data = await response.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
+  // ── Google Calendar Sincronização Helpers ─────────────────────────────────
+
+  async _renderCalendarView() {
+    const calendar = this.models.calendarModel.getAll();
+    const subjects = this.models.subjectModel.getAll();
+    
+    // Renderiza inicialmente com o que temos carregado
+    this.views.calendar.render(calendar, subjects, this._gcalEvents || []);
+
+    // Se estiver autenticado, busca os eventos em background e atualiza a view
+    if (GoogleCalendar.isAuthenticated()) {
+      await this._fetchAndRenderGCal();
+    }
+  }
+
+  async _fetchAndRenderGCal() {
+    if (!GoogleCalendar.isAuthenticated()) {
+      this._gcalEvents = [];
+      return;
+    }
+
+    try {
+      const year = this.views.calendar._year;
+      const month = this.views.calendar._month;
+      
+      const timeMin = new Date(year, month - 1, 1).toISOString();
+      const timeMax = new Date(year, month, 0, 23, 59, 59).toISOString();
+      
+      const gEvents = await GoogleCalendar.fetchEvents(timeMin, timeMax);
+      
+      this._gcalEvents = gEvents.map(e => {
+        let dateStr = '';
+        if (e.start?.date) {
+          dateStr = e.start.date;
+        } else if (e.start?.dateTime) {
+          dateStr = e.start.dateTime.slice(0, 10);
+        }
+        return {
+          id: e.id,
+          title: e.summary || '(Sem título)',
+          date: dateStr,
+          htmlLink: e.htmlLink,
+          description: e.description || ''
+        };
+      });
+
+      // Recarrega a view caso o usuário ainda esteja na aba de calendário
+      if (this._route.view === 'calendar') {
+        const calendar = this.models.calendarModel.getAll();
+        const subjects = this.models.subjectModel.getAll();
+        this.views.calendar.render(calendar, subjects, this._gcalEvents);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar eventos do Google Calendar:', e);
+    }
+  }
+
+  async _syncLocalEventToGoogle(ev) {
+    if (!GoogleCalendar.isAuthenticated()) return;
+    try {
+      const s = ev.subjectId ? this.models.subjectModel.getById(ev.subjectId) : null;
+      const gId = await GoogleCalendar.pushEvent(ev, s?.name);
+      if (gId && ev.googleEventId !== gId) {
+        ev.googleEventId = gId;
+        this.models.calendarModel._save();
+      }
+    } catch (e) {
+      console.error('Erro ao enviar evento para o Google Calendar:', e);
+    }
+  }
+
+  async _syncAllLocalEventsToGoogle() {
+    if (!GoogleCalendar.isAuthenticated()) return;
+
+    const events = this.models.calendarModel.getAll();
+    const { subjectModel, calendarModel } = this.models;
+    let updatedAny = false;
+
+    for (const ev of events) {
+      if (!ev.googleEventId) {
+        try {
+          const s = ev.subjectId ? subjectModel.getById(ev.subjectId) : null;
+          const gId = await GoogleCalendar.pushEvent(ev, s?.name);
+          if (gId) {
+            ev.googleEventId = gId;
+            updatedAny = true;
+          }
+        } catch (e) {
+          console.error('Erro ao sincronizar evento:', ev.title, e);
+        }
+      }
+    }
+
+    if (updatedAny) {
+      calendarModel._save();
+    }
   }
 }
