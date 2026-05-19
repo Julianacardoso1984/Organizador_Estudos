@@ -7,12 +7,8 @@
 class SpotifyService {
   constructor() {
     this.SCOPES = 'playlist-read-private playlist-read-collaborative user-read-private user-read-email';
-    this.REDIRECT_URI = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/') || window.location.origin + '/';
-
-    // Normaliza redirect URI para a raiz
-    if (!this.REDIRECT_URI.endsWith('/')) {
-      this.REDIRECT_URI = this.REDIRECT_URI.replace(/\/index\.html$/, '/');
-    }
+    // Always use the exact origin root — must match Spotify Dashboard Redirect URI exactly
+    this.REDIRECT_URI = window.location.origin + '/';
 
     this._config = Storage.get('spotify_config') || {
       clientId: '',
