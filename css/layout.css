@@ -227,6 +227,15 @@ body {
   padding: 10px 12px;
 }
 
+.sidebar-backup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 8px;
+}
+
 
 .theme-toggle {
   display: flex; align-items: center; gap: 6px;

@@ -67,6 +67,17 @@ class SidebarView {
           <span class="clock-time">00:00:00</span>
           <span class="clock-date">Carregando...</span>
         </div>
+        <div class="sidebar-backup-actions">
+          <button class="theme-toggle" id="btn-export-backup" title="Exportar Backup de Dados">
+            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Exportar Backup</span>
+          </button>
+          <button class="theme-toggle" id="btn-import-backup" title="Importar Backup de Dados">
+            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Importar Backup</span>
+          </button>
+          <input type="file" id="input-import-backup" accept=".json" style="display:none;"/>
+        </div>
         <button class="btn-icon theme-toggle" id="btn-theme" title="Alternar tema">
           <svg id="theme-icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
           <svg id="theme-icon-sun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
@@ -159,6 +170,27 @@ class SidebarView {
     document.getElementById('btn-theme')?.addEventListener('click', () => {
       EventBus.emit('ui:toggleTheme');
     });
+
+    // Export backup
+    document.getElementById('btn-export-backup')?.addEventListener('click', () => {
+      EventBus.emit('ui:exportBackup');
+    });
+
+    // Import backup (click hidden input and handle file)
+    const btnImport = document.getElementById('btn-import-backup');
+    const inputImport = document.getElementById('input-import-backup');
+    if (btnImport && inputImport) {
+      btnImport.addEventListener('click', () => {
+        inputImport.click();
+      });
+      inputImport.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          EventBus.emit('ui:importBackup', file);
+          inputImport.value = ''; // clear input
+        }
+      });
+    }
 
     // New subject
     document.getElementById('btn-new-subject')?.addEventListener('click', () => {

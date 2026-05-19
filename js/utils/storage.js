@@ -99,5 +99,66 @@ const Storage = (() => {
     });
   }
 
-  return { get, set, remove, saveFile, getFile, deleteFile, clearAllFiles, initDB };
+  // ── Sincronização & Backup de Dados (JSON completo) ───────────────────────
+
+  function exportFullBackup() {
+    const keys = [
+      'subjects',
+      'pages',
+      'tasks',
+      'mindMaps',
+      'materials',
+      'flashcards',
+      'quizzes',
+      'courses',
+      'pomodoroStats',
+      'calendarEvents',
+      'theme'
+    ];
+    const backup = {};
+    keys.forEach(k => {
+      const val = localStorage.getItem(k);
+      if (val !== null) {
+        try {
+          backup[k] = JSON.parse(val);
+        } catch (e) {
+          backup[k] = val;
+        }
+      }
+    });
+    return backup;
+  }
+
+  function importFullBackup(backupData) {
+    if (!backupData || typeof backupData !== 'object') {
+      throw new Error('Formato de backup inválido.');
+    }
+
+    const allowedKeys = [
+      'subjects',
+      'pages',
+      'tasks',
+      'mindMaps',
+      'materials',
+      'flashcards',
+      'quizzes',
+      'courses',
+      'pomodoroStats',
+      'calendarEvents',
+      'theme'
+    ];
+
+    allowedKeys.forEach(k => {
+      if (backupData[k] !== undefined) {
+        const val = backupData[k];
+        if (typeof val === 'object') {
+          localStorage.setItem(k, JSON.stringify(val));
+        } else {
+          localStorage.setItem(k, val);
+        }
+      }
+    });
+  }
+
+  return { get, set, remove, saveFile, getFile, deleteFile, clearAllFiles, initDB, exportFullBackup, importFullBackup };
 })();

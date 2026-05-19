@@ -631,6 +631,55 @@ class AppController {
         this._startVoiceRecording(pageId);
       }
     });
+
+    // ─ Backup de Dados ─
+    EventBus.on('ui:exportBackup', () => {
+      try {
+        const backupData = Storage.exportFullBackup();
+        const jsonString = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const dateStr = new Date().toISOString().slice(0, 10);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `estuda-ai-backup-${dateStr}.json`;
+        a.click();
+        
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        this._toast('✅ Backup exportado com sucesso!');
+      } catch (e) {
+        console.error(e);
+        alert('Erro ao exportar backup: ' + e.message);
+      }
+    });
+
+    EventBus.on('ui:importBackup', (file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (!data || typeof data !== 'object') {
+            throw new Error('O arquivo de backup é inválido.');
+          }
+          if (!data.subjects && !data.pages && !data.tasks) {
+            throw new Error('Nenhum dado de estudo válido encontrado no arquivo.');
+          }
+          
+          if (confirm('Importar este backup irá substituir matérias, tarefas e anotações existentes neste navegador. Deseja continuar?')) {
+            Storage.importFullBackup(data);
+            this._toast('⚡ Backup importado! Recarregando...');
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Erro ao importar backup: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
   }
 
   _renderSidebar() {
