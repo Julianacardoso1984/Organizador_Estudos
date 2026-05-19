@@ -99,9 +99,9 @@ const Storage = (() => {
     });
   }
 
-  // ── Sincronização & Backup de Dados (JSON completo) ───────────────────────
+  // ── Sincronização & Backup de Dados (JSON completo + Arquivos) ────────────
 
-  function exportFullBackup() {
+  async function exportFullBackup() {
     const keys = [
       'subjects',
       'pages',
@@ -113,27 +113,64 @@ const Storage = (() => {
       'courses',
       'pomodoroStats',
       'calendarEvents',
-      'theme'
+      'theme',
+      'studySchedule',
+      'geminiAPIKey'
     ];
-    const backup = {};
+    const backup = {
+      localStorage: {},
+      files: {}
+    };
+
+    // 1. Exportar localStorage
     keys.forEach(k => {
       const val = localStorage.getItem(k);
       if (val !== null) {
         try {
-          backup[k] = JSON.parse(val);
+          backup.localStorage[k] = JSON.parse(val);
         } catch (e) {
-          backup[k] = val;
+          backup.localStorage[k] = val;
         }
       }
     });
+
+    // 2. Exportar arquivos do IndexedDB
+    const materialsJson = localStorage.getItem('materials');
+    if (materialsJson) {
+      try {
+        const materials = JSON.parse(materialsJson);
+        if (Array.isArray(materials)) {
+          for (const m of materials) {
+            const blob = await getFile(m.id);
+            if (blob) {
+              // Converter blob para DataURL (Base64)
+              const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+              backup.files[m.id] = dataUrl;
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao ler arquivos para backup:', e);
+      }
+    }
+
     return backup;
   }
 
-  function importFullBackup(backupData) {
+  async function importFullBackup(backupData) {
     if (!backupData || typeof backupData !== 'object') {
       throw new Error('Formato de backup inválido.');
     }
 
+    // Suporta o formato unificado novo ou o formato simples antigo
+    const lsData = backupData.localStorage || backupData;
+
+    // 1. Importar localStorage
     const allowedKeys = [
       'subjects',
       'pages',
@@ -145,12 +182,14 @@ const Storage = (() => {
       'courses',
       'pomodoroStats',
       'calendarEvents',
-      'theme'
+      'theme',
+      'studySchedule',
+      'geminiAPIKey'
     ];
 
     allowedKeys.forEach(k => {
-      if (backupData[k] !== undefined) {
-        const val = backupData[k];
+      if (lsData[k] !== undefined) {
+        const val = lsData[k];
         if (typeof val === 'object') {
           localStorage.setItem(k, JSON.stringify(val));
         } else {
@@ -158,6 +197,19 @@ const Storage = (() => {
         }
       }
     });
+
+    // 2. Importar arquivos do IndexedDB se existirem
+    if (backupData.files && typeof backupData.files === 'object') {
+      for (const [id, dataUrl] of Object.entries(backupData.files)) {
+        try {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          await saveFile(id, blob);
+        } catch (e) {
+          console.error(`Erro ao restaurar arquivo ${id} no IndexedDB:`, e);
+        }
+      }
+    }
   }
 
   return { get, set, remove, saveFile, getFile, deleteFile, clearAllFiles, initDB, exportFullBackup, importFullBackup };

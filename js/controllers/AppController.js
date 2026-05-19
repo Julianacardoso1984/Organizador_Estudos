@@ -633,9 +633,10 @@ class AppController {
     });
 
     // ─ Backup de Dados ─
-    EventBus.on('ui:exportBackup', () => {
+    EventBus.on('ui:exportBackup', async () => {
       try {
-        const backupData = Storage.exportFullBackup();
+        this._toast('📦 Preparando backup com arquivos...');
+        const backupData = await Storage.exportFullBackup();
         const jsonString = JSON.stringify(backupData, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -656,22 +657,25 @@ class AppController {
 
     EventBus.on('ui:importBackup', (file) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const data = JSON.parse(e.target.result);
           if (!data || typeof data !== 'object') {
             throw new Error('O arquivo de backup é inválido.');
           }
-          if (!data.subjects && !data.pages && !data.tasks) {
+          
+          const hasData = data.localStorage || data.subjects || data.pages || data.tasks;
+          if (!hasData) {
             throw new Error('Nenhum dado de estudo válido encontrado no arquivo.');
           }
           
-          if (confirm('Importar este backup irá substituir matérias, tarefas e anotações existentes neste navegador. Deseja continuar?')) {
-            Storage.importFullBackup(data);
-            this._toast('⚡ Backup importado! Recarregando...');
+          if (confirm('Importar este backup irá substituir matérias, tarefas, anotações e todos os arquivos existentes neste navegador. Deseja continuar?')) {
+            this._toast('⚡ Restaurando arquivos e dados...');
+            await Storage.importFullBackup(data);
+            this._toast('✅ Backup restaurado! Recarregando...');
             setTimeout(() => {
               window.location.reload();
-            }, 1000);
+            }, 1500);
           }
         } catch (err) {
           console.error(err);
