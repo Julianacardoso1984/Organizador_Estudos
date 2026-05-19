@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const platformBrowserView = new PlatformBrowserView();
   const flashcardView = new FlashcardView();
   const quizView      = new QuizView();
+  const integrationsView = new IntegrationsView();
 
   // ── Controller ────────────────────────────────────────────────────────────
   const controller = new AppController(
@@ -54,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     { sidebar: sidebarView, notes: notesView, editor: editorView, dashboard: dashboardView,
       tasks: tasksView, timer: timerView, calendar: calendarView,
       materials: materialsView, mindmap: mindmapView, platformBrowser: platformBrowserView,
-      flashcard: flashcardView, quiz: quizView }
+      flashcard: flashcardView, quiz: quizView, integrations: integrationsView }
   );
 
   // Expose for debug

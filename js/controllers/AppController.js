@@ -61,7 +61,7 @@ class AppController {
     this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route);
 
     // Show correct view
-    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes','notes'];
+    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes','notes','integrations'];
     allViews.forEach(v => {
       const el = document.getElementById(`view-${v}`);
       if (el) el.classList.toggle('hidden', v !== this._route.view);
@@ -146,6 +146,11 @@ class AppController {
         this.views.quiz.render(filtered, subject, subjects, subMats);
         break;
       }
+
+      case 'integrations': {
+        this.views.integrations.render();
+        break;
+      }
     }
   }
 
@@ -198,6 +203,20 @@ class AppController {
     EventBus.on('ui:newPage', ({ subjectId }) => {
       const page = pageModel.create(subjectId);
       this.navigate('editor', { pageId: page.id, subjectId });
+
+      if (Discord.isEnabled('notes')) {
+        const s = subjectId ? subjectModel.getById(subjectId) : null;
+        Discord.sendEmbed({
+          title: '📄 Novo Caderno de Anotações Criado!',
+          description: `Um novo espaço de anotações foi iniciado para organizar os estudos. ✍️`,
+          color: Discord.hexToDecimal(s?.color || '#06B6D4'),
+          fields: [
+            s ? { name: 'Matéria', value: `${s.emoji} ${s.name}`, inline: true } : null,
+            { name: 'Título Inicial', value: page.title || 'Sem título', inline: true }
+          ].filter(Boolean),
+          footer: { text: 'EstudaAí' }
+        }).catch(err => console.error(err));
+      }
     });
 
     EventBus.on('editor:save', ({ pageId, title, blocks }) => {
@@ -230,8 +249,23 @@ class AppController {
       const t = taskModel.getById(taskId);
       if (!t) return;
       const cycle = { todo:'doing', doing:'done', done:'todo' };
-      taskModel.setStatus(taskId, cycle[t.status]);
+      const newStatus = cycle[t.status];
+      taskModel.setStatus(taskId, newStatus);
       this._render();
+
+      if (newStatus === 'done' && Discord.isEnabled('task')) {
+        const s = t.subjectId ? subjectModel.getById(t.subjectId) : null;
+        Discord.sendEmbed({
+          title: '✅ Tarefa Concluída!',
+          description: `A tarefa **"${t.title}"** foi concluída com sucesso! 🎉`,
+          color: Discord.hexToDecimal(s?.color || '#10B981'),
+          fields: [
+            s ? { name: 'Matéria', value: `${s.emoji} ${s.name}`, inline: true } : null,
+            t.description ? { name: 'Descrição', value: t.description, inline: false } : null
+          ].filter(Boolean),
+          footer: { text: 'EstudaAí' }
+        }).catch(err => console.error(err));
+      }
     });
 
     EventBus.on('task:delete', ({ taskId }) => {
@@ -319,10 +353,23 @@ class AppController {
     EventBus.on('timer:skip',     () => { this.models.timerModel._complete();          this._renderTimer(); });
     EventBus.on('timer:setMode',  (mode) => { this.models.timerModel.setMode(mode);   this._renderTimer(); });
     EventBus.on('timer:tick',     () => { if(this._route.view==='timer') this._renderTimer(); });
-    EventBus.on('timer:complete', ({ mode }) => {
+    EventBus.on('timer:complete', ({ mode, session }) => {
       const msg = mode==='focus' ? '✅ Sessão de foco concluída!' : '🎯 Hora de focar!';
       this._toast(msg);
       if(this._route.view==='timer') this._renderTimer();
+
+      if (mode === 'focus' && Discord.isEnabled('pomodoro')) {
+        Discord.sendEmbed({
+          title: '⏱️ Ciclo Pomodoro Finalizado!',
+          description: `Mais uma sessão de foco concluída com sucesso! Continue assim. 🚀`,
+          color: Discord.hexToDecimal('#EC4899'),
+          fields: [
+            { name: 'Duração', value: '25 minutos', inline: true },
+            { name: 'Total de Ciclos', value: `${session} sessões`, inline: true }
+          ],
+          footer: { text: 'EstudaAí' }
+        }).catch(err => console.error(err));
+      }
     });
 
     EventBus.on('ui:resetFocusSessions', () => {
@@ -703,6 +750,7 @@ class AppController {
     EventBus.on('ui:changeGCalClientId', ({ clientId }) => {
       GoogleCalendar.setClientId(clientId);
       this._toast('ID do Cliente Google salvo.');
+      this._render();
     });
 
     EventBus.on('ui:connectGoogleCalendar', async () => {
@@ -725,6 +773,23 @@ class AppController {
       this._gcalEvents = [];
       this._toast('🔴 Desconectado do Google.');
       this._render();
+    });
+
+    EventBus.on('ui:saveDiscordConfig', (config) => {
+      Discord.saveConfig(config);
+      this._toast('Configurações do Discord salvas!');
+      this._render();
+    });
+
+    EventBus.on('ui:testDiscordWebhook', async () => {
+      try {
+        this._toast('Enviando mensagem de teste...');
+        await Discord.sendTestMessage();
+        this._toast('🟢 Teste enviado com sucesso!');
+      } catch (e) {
+        console.error(e);
+        alert('Erro ao enviar mensagem de teste: ' + e.message);
+      }
     });
 
     EventBus.on('ui:syncGoogleCalendar', async () => {
@@ -983,6 +1048,20 @@ class AppController {
         const map = this.models.mindMapModel.create(subjectId, name, type);
         this._closeModal();
         this.navigate('mindmap', { mapId: map.id, subjectId });
+
+        if (Discord.isEnabled('mindmap')) {
+          const s = subjectId ? this.models.subjectModel.getById(subjectId) : null;
+          Discord.sendEmbed({
+            title: `🧠 Novo Mapa ${type === 'mind' ? 'Mental' : 'Conceitual'} Criado!`,
+            description: `O mapa conceitual **"${name}"** foi criado para organizar visualmente o conteúdo. 🎨`,
+            color: Discord.hexToDecimal(s?.color || '#8B5CF6'),
+            fields: [
+              s ? { name: 'Matéria', value: `${s.emoji} ${s.name}`, inline: true } : null,
+              { name: 'Tipo', value: type === 'mind' ? 'Mental' : 'Conceitual', inline: true }
+            ].filter(Boolean),
+            footer: { text: 'EstudaAí' }
+          }).catch(err => console.error(err));
+        }
       });
       document.getElementById('modal-map-name')?.focus();
     });
