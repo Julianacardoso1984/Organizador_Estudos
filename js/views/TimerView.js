@@ -8,9 +8,7 @@ class TimerView {
     this.el = document.getElementById('view-timer');
     this._playingSounds = { rain: false, wind: false, binaural: false, campfire: false, waves: false };
     this._soundVolumes = { rain: 0.3, wind: 0.3, binaural: 0.2, campfire: 0.3, waves: 0.3 };
-  }
-
-  render(state) {
+  }  render(state) {
     const { mode, label, total, remaining, running, session } = state;
     const pct = ((total - remaining) / total) * 100;
     const mins = String(Math.floor(remaining/60)).padStart(2,'0');
@@ -19,8 +17,26 @@ class TimerView {
     const circ   = 2 * Math.PI * radius;
     const dash   = circ - (pct / 100) * circ;
 
+    const spotifyPlaylist = state.spotifyPlaylist || '';
+    const getSpotifyEmbedUrl = (url) => {
+      const defaultEmbed = 'https://open.spotify.com/embed/playlist/37i9dQZF1DWWQRwui0ExPn?utm_source=generator&theme=0';
+      if (!url) return defaultEmbed;
+      try {
+        const cleanUrl = url.split('?')[0];
+        const match = cleanUrl.match(/open\.spotify\.com\/(playlist|album|track|artist)\/([a-zA-Z0-9]+)/);
+        if (match) {
+          return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator&theme=0`;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return defaultEmbed;
+    };
+    const embedUrl = getSpotifyEmbedUrl(spotifyPlaylist);
+    const spotifyOpen = localStorage.getItem('timer_spotify_open') === 'true';
+
     this.el.innerHTML = `
-      <div class="view-content timer-content" style="display:flex; flex-direction:column; align-items:center; gap:20px; padding:32px 24px;">
+      <div class="view-content timer-content" style="display:flex; flex-direction:column; align-items:center; gap:20px; padding:32px 24px; max-height: calc(100vh - 80px); overflow-y: auto;">
         <h1 class="timer-title" style="margin:0;">Pomodoro</h1>
 
         <div class="timer-mode-tabs" style="margin:0;">
@@ -114,6 +130,31 @@ class TimerView {
             Sons gerados matematicamente offline em tempo real pelo navegador! Use fones para usufruir das Ondas Alfa.
           </p>
         </div>
+
+        <!-- Painel Spotify Music -->
+        <div class="timer-spotify-panel" style="margin-top: 16px; max-width: 420px; width: 100%;">
+          <details ${spotifyOpen ? 'open' : ''} style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden;">
+            <summary style="cursor: pointer; padding: 14px 20px; font-size: 0.95rem; font-weight: 650; display: flex; align-items: center; justify-content: space-between; list-style: none; user-select: none;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg viewBox="0 0 24 24" width="18" height="18" style="fill: #1DB954;"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.438-5.305-1.764-8.788-.97-.336.075-.668-.135-.744-.47-.077-.336.135-.668.47-.743 3.818-.874 7.08-.503 9.714 1.11.294.18.385.563.205.857zm1.225-2.72c-.227.367-.707.487-1.074.26-2.69-1.654-6.79-2.134-9.967-1.17-.413.125-.85-.107-.975-.52-.125-.413.107-.85.52-.975 3.637-1.104 8.148-.567 11.236 1.33.367.226.487.707.26 1.075zm.106-2.837C14.502 8.84 8.703 8.65 5.342 9.67c-.522.158-1.076-.14-1.234-.662-.158-.522.14-1.076.662-1.234 3.856-1.17 10.25-.953 14.218 1.403.47.28.624.893.345 1.364-.28.47-.893.623-1.364.344z"/></svg>
+                <span style="color: var(--text);">Música de Foco (Spotify)</span>
+              </div>
+              <span class="spotify-toggle-icon">▼</span>
+            </summary>
+            <div style="padding: 0 12px 16px 12px; display: flex; flex-direction: column; gap: 8px;">
+              <iframe 
+                src="${embedUrl}" 
+                width="100%" 
+                height="352" 
+                frameBorder="0" 
+                allowfullscreen="" 
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                loading="lazy"
+                style="border-radius: 8px; border: none; background: rgba(0,0,0,0.1); height:352px;">
+              </iframe>
+            </div>
+          </details>
+        </div>
       </div>`;
 
     this._bindEvents();
@@ -142,6 +183,12 @@ class TimerView {
         const val = e.target.value;
         EventBus.emit('sound:volume', { type, value: val });
       });
+    });
+
+    // Persistência de abertura do Spotify panel
+    const spotifyPanel = this.el.querySelector('.timer-spotify-panel details');
+    spotifyPanel?.addEventListener('toggle', () => {
+      localStorage.setItem('timer_spotify_open', spotifyPanel.open);
     });
   }
 }

@@ -118,7 +118,7 @@ class AppController {
       }
 
       case 'timer':
-        this.views.timer.render(timerModel._state());
+        this._renderTimer();
         break;
 
       case 'platform-browser': {
@@ -797,6 +797,12 @@ class AppController {
       }
     });
 
+    EventBus.on('ui:saveSpotifyPlaylist', ({ playlistUrl }) => {
+      Storage.set('spotify_playlist', playlistUrl);
+      this._toast('Playlist do Spotify salva!');
+      this._render();
+    });
+
     EventBus.on('ui:syncGoogleCalendar', async () => {
       if (!GoogleCalendar.isAuthenticated()) {
         alert('Por favor, conecte sua conta Google primeiro.');
@@ -862,7 +868,9 @@ class AppController {
   }
 
   _renderTimer() {
-    this.views.timer.render(this.models.timerModel._state());
+    const state = this.models.timerModel._state();
+    state.spotifyPlaylist = Storage.get('spotify_playlist') || '';
+    this.views.timer.render(state);
   }
 
   _applyTheme() {

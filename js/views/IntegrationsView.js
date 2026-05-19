@@ -14,6 +14,8 @@ class IntegrationsView {
 
     const dcConfig = window.Discord?.config || {};
     const dcConnected = !!dcConfig.webhookUrl;
+    
+    const spotifyPlaylist = Storage.get('spotify_playlist') || '';
 
     this.el.innerHTML = `
       <div class="view-content integrations-content">
@@ -142,6 +144,37 @@ class IntegrationsView {
               </div>
             </div>
           </div>
+
+          <!-- Card Spotify -->
+          <div class="integration-card">
+            <div class="integration-card-header">
+              <h2>
+                <svg viewBox="0 0 24 24" width="20" height="20" style="fill: #1DB954; margin-bottom:-2px;"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.438-5.305-1.764-8.788-.97-.336.075-.668-.135-.744-.47-.077-.336.135-.668.47-.743 3.818-.874 7.08-.503 9.714 1.11.294.18.385.563.205.857zm1.225-2.72c-.227.367-.707.487-1.074.26-2.69-1.654-6.79-2.134-9.967-1.17-.413.125-.85-.107-.975-.52-.125-.413.107-.85.52-.975 3.637-1.104 8.148-.567 11.236 1.33.367.226.487.707.26 1.075zm.106-2.837C14.502 8.84 8.703 8.65 5.342 9.67c-.522.158-1.076-.14-1.234-.662-.158-.522.14-1.076.662-1.234 3.856-1.17 10.25-.953 14.218 1.403.47.28.624.893.345 1.364-.28.47-.893.623-1.364.344z"/></svg>
+                Spotify Player
+              </h2>
+              <span class="integration-badge ${spotifyPlaylist ? 'connected' : 'disconnected'}">
+                ${spotifyPlaylist ? 'Ativo' : 'Padrão'}
+              </span>
+            </div>
+
+            <div class="integration-form">
+              <div class="integration-field">
+                <label for="spotify-playlist-input">Link da Playlist ou Álbum</label>
+                <input type="text" id="spotify-playlist-input" value="${spotifyPlaylist}" placeholder="Ex: https://open.spotify.com/playlist/37i9dQZF1DWWQRwui0ExPn">
+              </div>
+              <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px; font-size: 0.78rem; line-height: 1.4; color: var(--text-muted); margin-top: 4px;">
+                <strong style="color: var(--text); display: block; margin-bottom: 4px;">🎵 Como obter o link no Spotify:</strong>
+                1. Abra o Spotify e navegue até a Playlist ou Álbum desejado.<br>
+                2. Clique nos <strong>três pontinhos (...) &gt; Compartilhar &gt; Copiar Link</strong>.<br>
+                3. Por padrão, usamos a playlist <strong>Lofi Beats para Foco</strong>.
+              </div>
+
+              <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn-primary" id="btn-save-spotify-settings" style="flex:1;">Salvar Playlist</button>
+                ${spotifyPlaylist ? `<button class="btn-ghost" id="btn-reset-spotify" style="color:#EF4444;">Restaurar Padrão</button>` : ''}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -199,6 +232,17 @@ class IntegrationsView {
     // Test Discord Webhook
     document.getElementById('btn-test-discord')?.addEventListener('click', () => {
       EventBus.emit('ui:testDiscordWebhook');
+    });
+
+    // Save Spotify Settings
+    document.getElementById('btn-save-spotify-settings')?.addEventListener('click', () => {
+      const playlistUrl = document.getElementById('spotify-playlist-input').value.trim();
+      EventBus.emit('ui:saveSpotifyPlaylist', { playlistUrl });
+    });
+
+    // Reset Spotify Settings
+    document.getElementById('btn-reset-spotify')?.addEventListener('click', () => {
+      EventBus.emit('ui:saveSpotifyPlaylist', { playlistUrl: '' });
     });
   }
 }
