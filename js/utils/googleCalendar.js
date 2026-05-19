@@ -7,7 +7,7 @@ class GoogleCalendarService {
   constructor() {
     this.accessToken = null;
     this.tokenExpiry = null;
-    this.clientId = localStorage.getItem('googleClientId') || '';
+    this.clientId = localStorage.getItem('googleClientId') || '223537957746-48mga3ou7vu38c88shmatllhmrog0uq9.apps.googleusercontent.com';
     this.customCalendarId = localStorage.getItem('googleCustomCalendarId') || '';
   }
 
