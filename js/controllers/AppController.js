@@ -268,6 +268,10 @@ class AppController {
     EventBus.on('material:preview', async ({ materialId }) => {
       const meta = materialModel.getById(materialId);
       if (!meta) return;
+      if (meta.type === 'drive') {
+        window.open(meta.driveUrl, '_blank');
+        return;
+      }
       const url = await materialModel.getBlobURL(materialId);
       if (!url) { alert('Arquivo não disponível.'); return; }
       this._showPreviewModal(meta, url);
@@ -275,6 +279,11 @@ class AppController {
 
     EventBus.on('material:download', async ({ materialId }) => {
       const meta = materialModel.getById(materialId);
+      if (!meta) return;
+      if (meta.type === 'drive') {
+        window.open(meta.driveUrl, '_blank');
+        return;
+      }
       const url  = await materialModel.getBlobURL(materialId);
       if (!url) { alert('Arquivo não disponível.'); return; }
       const a = document.createElement('a');
@@ -289,6 +298,10 @@ class AppController {
 
     EventBus.on('ui:pickSubjectForUpload', ({ files }) => {
       this._showPickSubjectModal(files);
+    });
+
+    EventBus.on('ui:openGDrivePicker', ({ subjectId }) => {
+      this._showGDrivePickerModal(subjectId);
     });
 
     // ─ Mind Maps ─
@@ -1526,5 +1539,140 @@ Retorne estritamente o texto formatado em Markdown, sem nenhuma introdução ou 
     if (updatedAny) {
       calendarModel._save();
     }
+  }
+
+  // ── Google Drive picker modal and search helpers ──────────────────────────
+
+  async _showGDrivePickerModal(subjectId) {
+    if (!GoogleCalendar.isAuthenticated()) {
+      const confirmConn = confirm('Você precisa conectar sua conta do Google para buscar arquivos no Google Drive. Conectar agora?');
+      if (confirmConn) {
+        try {
+          this._toast('Conectando ao Google...');
+          await GoogleCalendar.connect();
+          this._toast('🟢 Conectado com sucesso!');
+        } catch (e) {
+          console.error(e);
+          alert('Erro ao conectar: ' + e.message);
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+
+    const subjects = this.models.subjectModel.getAll();
+    let targetSubjectId = subjectId || (subjects[0]?.id || null);
+
+    this._openModal(`
+      <h2>Selecionar do Google Drive ☁️</h2>
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <input type="text" id="gdrive-search-input" class="modal-input" placeholder="Buscar arquivos no Google Drive..." style="margin-bottom:0; flex-grow:1;">
+        <select id="gdrive-subject-select" class="select-input" style="width:180px;">
+          ${subjects.map(s => `<option value="${s.id}" ${s.id===targetSubjectId?'selected':''}>${s.emoji} ${s.name}</option>`).join('')}
+        </select>
+      </div>
+      <div id="gdrive-files-container" style="max-height:350px; min-height:120px; overflow-y:auto; border:1px solid rgba(255,255,255,0.08); border-radius:8px; background:rgba(0,0,0,0.15);">
+        <div id="gdrive-loading" style="padding:40px; text-align:center; color:var(--text-muted);">
+          Carregando arquivos do Drive...
+        </div>
+        <div id="gdrive-files-list"></div>
+      </div>
+    `, () => {
+      const searchInput = document.getElementById('gdrive-search-input');
+      const listEl = document.getElementById('gdrive-files-list');
+      const loadingEl = document.getElementById('gdrive-loading');
+      const subjectSelect = document.getElementById('gdrive-subject-select');
+
+      let debounceTimer = null;
+
+      const loadFiles = async (query = '') => {
+        try {
+          loadingEl.style.display = 'block';
+          listEl.innerHTML = '';
+          
+          const files = await this._fetchDriveFiles(query);
+          
+          loadingEl.style.display = 'none';
+          if (files.length === 0) {
+            listEl.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted);">Nenhum arquivo encontrado.</div>`;
+            return;
+          }
+
+          listEl.innerHTML = files.map(file => {
+            const sizeStr = file.size ? this.models.materialModel.formatSize(parseInt(file.size)) : 'Tamanho desconhecido';
+            return `
+              <div class="gdrive-item" data-id="${file.id}" style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.04); cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
+                <div style="display:flex; align-items:center; gap:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80%;">
+                  <span style="font-size:18px;">📄</span>
+                  <div style="display:flex; flex-direction:column; overflow:hidden;">
+                    <span style="font-weight:500; font-size:14px; overflow:hidden; text-overflow:ellipsis;">${file.name}</span>
+                    <span style="font-size:11px; color:var(--text-muted);">${sizeStr}</span>
+                  </div>
+                </div>
+                <button class="btn-primary btn-sm" style="padding:4px 10px;">Adicionar</button>
+              </div>
+            `;
+          }).join('');
+
+          listEl.querySelectorAll('.gdrive-item').forEach(el => {
+            el.addEventListener('click', () => {
+              const fileId = el.dataset.id;
+              const selectedFile = files.find(f => f.id === fileId);
+              if (selectedFile) {
+                const finalSubjId = subjectSelect.value;
+                this.models.materialModel.createDriveLink(finalSubjId, selectedFile);
+                this._toast('✅ Arquivo do Google Drive adicionado!');
+                this._closeModal();
+                this._render();
+              }
+            });
+          });
+
+        } catch (e) {
+          console.error(e);
+          loadingEl.style.display = 'none';
+          listEl.innerHTML = `<div style="padding:40px; text-align:center; color:#EF4444;">Erro ao carregar arquivos: ${e.message}</div>`;
+        }
+      };
+
+      loadFiles();
+
+      searchInput?.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          loadFiles(e.target.value);
+        }, 400);
+      });
+    });
+  }
+
+  async _fetchDriveFiles(query = '') {
+    const params = new URLSearchParams({
+      pageSize: '40',
+      fields: 'nextPageToken,files(id,name,mimeType,size,webViewLink)'
+    });
+    
+    let qStr = "trashed = false";
+    if (query.trim()) {
+      const escQuery = query.replace(/'/g, "\\'");
+      qStr += ` and name contains '${escQuery}'`;
+    }
+    params.append('q', qStr);
+
+    const url = `https://www.googleapis.com/drive/v3/files?${params.toString()}`;
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${GoogleCalendar.accessToken}`
+      }
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.files || [];
   }
 }

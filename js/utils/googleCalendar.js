@@ -54,7 +54,7 @@ class GoogleCalendarService {
       try {
         const client = google.accounts.oauth2.initTokenClient({
           client_id: this.clientId,
-          scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file',
+          scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
           callback: (response) => {
             if (response.error) {
               reject(new Error(response.error_description || response.error));

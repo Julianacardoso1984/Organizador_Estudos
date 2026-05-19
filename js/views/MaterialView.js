@@ -9,7 +9,7 @@ class MaterialView {
   }
 
   render(materials, subject, allSubjects) {
-    const typeIcon = { pdf:'📄', image:'🖼', audio:'🎵', video:'🎬', doc:'📝', slide:'📊', other:'📎' };
+    const typeIcon = { pdf:'📄', image:'🖼', audio:'🎵', video:'🎬', doc:'📝', slide:'📊', drive:'☁️', other:'📎' };
 
     this.el.innerHTML = `
       <div class="view-content materials-content">
@@ -22,16 +22,22 @@ class MaterialView {
             </select>
           </div>
         </div>
-
+ 
         <div class="drop-zone" id="drop-zone">
           <div class="drop-zone-inner">
             <div class="drop-icon">📁</div>
             <p class="drop-text">Arraste arquivos aqui</p>
-            <p class="drop-subtext">PDF, imagens, áudio, vídeo, documentos</p>
-            <label class="btn-primary" style="cursor:pointer">
-              Selecionar Arquivo
-              <input type="file" id="file-input" multiple accept="*/*" style="display:none">
-            </label>
+            <p class="drop-subtext">PDF, imagens, áudio, vídeo, documentos ou arquivos na nuvem</p>
+            <div style="display:flex; justify-content:center; gap:10px; margin-top:10px; flex-wrap:wrap;">
+              <label class="btn-primary" style="cursor:pointer">
+                Selecionar Arquivo
+                <input type="file" id="file-input" multiple accept="*/*" style="display:none">
+              </label>
+              <button class="btn-ghost" id="btn-add-gdrive" style="display:flex; align-items:center; gap:6px; font-weight:600;" title="Adicionar arquivo do Google Drive">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="fill:currentColor; margin-bottom:-2px;"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+                Google Drive
+              </button>
+            </div>
           </div>
         </div>
 
@@ -86,6 +92,11 @@ class MaterialView {
     // File input
     document.getElementById('file-input')?.addEventListener('change', e => {
       this._handleFiles([...e.target.files], currentSubject?.id);
+    });
+
+    // Google Drive click
+    document.getElementById('btn-add-gdrive')?.addEventListener('click', () => {
+      EventBus.emit('ui:openGDrivePicker', { subjectId: currentSubject?.id });
     });
 
     // Drag & drop

@@ -46,6 +46,26 @@ class MaterialModel {
     return meta;
   }
 
+  createDriveLink(subjectId, driveFile, tags = []) {
+    const id = _uuid();
+    const meta = {
+      id,
+      subjectId,
+      name:       driveFile.name,
+      type:       'drive',
+      mimeType:   driveFile.mimeType,
+      size:       parseInt(driveFile.size) || 0,
+      driveUrl:   driveFile.webViewLink,
+      tags,
+      uploadedAt: new Date().toISOString()
+    };
+
+    this.materials.push(meta);
+    this._save();
+    EventBus.emit('materials:updated', this.getAll());
+    return meta;
+  }
+
   update(id, data) {
     const idx = this.materials.findIndex(m => m.id === id);
     if (idx === -1) return null;
