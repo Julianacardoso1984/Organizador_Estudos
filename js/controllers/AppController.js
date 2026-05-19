@@ -61,7 +61,7 @@ class AppController {
     this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route);
 
     // Show correct view
-    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes','notes','integrations'];
+    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes','notes','integrations','discord-chat'];
     allViews.forEach(v => {
       const el = document.getElementById(`view-${v}`);
       if (el) el.classList.toggle('hidden', v !== this._route.view);
@@ -149,6 +149,11 @@ class AppController {
 
       case 'integrations': {
         this.views.integrations.render();
+        break;
+      }
+
+      case 'discord-chat': {
+        this.views.discordChat.render();
         break;
       }
     }

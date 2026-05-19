@@ -11,7 +11,9 @@ class DiscordService {
       notifyPomodoro: true,
       notifyTask: true,
       notifyNotes: true,
-      notifyMindMap: true
+      notifyMindMap: true,
+      chatServerId: '',
+      chatChannelId: ''
     };
   }
 

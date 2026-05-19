@@ -119,6 +119,23 @@ class IntegrationsView {
                 </div>
               </div>
 
+              <div class="integration-toggles-title" style="margin-top:20px;">💬 Chat do Discord Embutido</div>
+              <div class="integration-field">
+                <label for="discord-chat-server-input">Server ID (ID do Servidor)</label>
+                <input type="text" id="discord-chat-server-input" value="${dcConfig.chatServerId || ''}" placeholder="Ex: 823485720938472390">
+              </div>
+              <div class="integration-field">
+                <label for="discord-chat-channel-input">Channel ID (ID do Canal de Texto)</label>
+                <input type="text" id="discord-chat-channel-input" value="${dcConfig.chatChannelId || ''}" placeholder="Ex: 823485720938472394">
+              </div>
+              <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px; font-size: 0.78rem; line-height: 1.4; color: var(--text-muted); margin-top: 4px;">
+                <strong style="color: var(--text); display: block; margin-bottom: 4px;">📌 Como obter os IDs no Discord:</strong>
+                1. Ative o <strong>Modo Desenvolvedor</strong> em <i>Configurações do Usuário &gt; Avançado</i>.<br>
+                2. Clique com o botão direito no ícone do servidor e selecione <strong>Copiar ID do Servidor</strong>.<br>
+                3. Clique com o botão direito no canal e selecione <strong>Copiar ID do Canal</strong>.<br>
+                4. O bot <strong>WidgetBot</strong> precisa ser adicionado ao servidor (<a href="https://add.widgetbot.io/" target="_blank" style="color: var(--accent); text-decoration: underline;">clique aqui para convidar</a>).
+              </div>
+
               <div style="display:flex; gap:10px; margin-top:10px;">
                 <button class="btn-primary" id="btn-save-discord-settings" style="flex:1;">Salvar Configurações</button>
                 <button class="btn-ghost" id="btn-test-discord" ${!dcConnected ? 'disabled' : ''}>Testar Envio</button>
@@ -164,13 +181,18 @@ class IntegrationsView {
       const notifyNotes = document.getElementById('discord-notify-notes').checked;
       const notifyMindMap = document.getElementById('discord-notify-mindmap').checked;
 
+      const chatServerId = document.getElementById('discord-chat-server-input').value.trim();
+      const chatChannelId = document.getElementById('discord-chat-channel-input').value.trim();
+
       EventBus.emit('ui:saveDiscordConfig', {
         webhookUrl,
         username,
         notifyPomodoro,
         notifyTask,
         notifyNotes,
-        notifyMindMap
+        notifyMindMap,
+        chatServerId,
+        chatChannelId
       });
     });
 
