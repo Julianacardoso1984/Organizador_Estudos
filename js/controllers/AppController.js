@@ -730,6 +730,41 @@ class AppController {
       }
     });
 
+    EventBus.on('ui:exportPageToGoogleDocs', async ({ pageId }) => {
+      if (!GoogleCalendar.isAuthenticated()) {
+        const confirmConn = confirm('Você precisa se conectar com a conta do Google e autorizar o Google Docs para exportar. Deseja conectar agora?');
+        if (confirmConn) {
+          try {
+            this._toast('Conectando ao Google...');
+            await GoogleCalendar.connect();
+            this._toast('🟢 Conectado com sucesso!');
+          } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com Google: ' + e.message);
+            return;
+          }
+        } else {
+          return;
+        }
+      }
+
+      const page = this.models.pageModel.getById(pageId);
+      if (!page) return;
+
+      try {
+        this._toast('📄 Criando documento no Google Docs...');
+        const docUrl = await GoogleCalendar.exportToGoogleDocs(page);
+        this._toast('✅ Documento exportado com sucesso!');
+        
+        if (confirm('Documento exportado com sucesso! Deseja abrir o documento criado no Google Docs agora?')) {
+          window.open(docUrl, '_blank');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Erro ao exportar para o Google Docs: ' + e.message);
+      }
+    });
+
     EventBus.on('calendar:monthChanged', async ({ year, month }) => {
       await this._fetchAndRenderGCal();
     });

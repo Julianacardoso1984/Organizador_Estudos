@@ -54,7 +54,7 @@ class GoogleCalendarService {
       try {
         const client = google.accounts.oauth2.initTokenClient({
           client_id: this.clientId,
-          scope: 'https://www.googleapis.com/auth/calendar',
+          scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file',
           callback: (response) => {
             if (response.error) {
               reject(new Error(response.error_description || response.error));
@@ -203,6 +203,169 @@ class GoogleCalendarService {
         throw e;
       }
     }
+  }
+
+  // Cria um documento no Google Docs e insere o conteúdo dos blocos
+  async exportToGoogleDocs(page) {
+    if (!this.isAuthenticated()) {
+      throw new Error('Não autenticado com a conta do Google.');
+    }
+
+    // 1. Criar o documento com o título da página
+    const createUrl = 'https://docs.googleapis.com/v1/documents';
+    const createRes = await fetch(createUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: page.title
+      })
+    });
+
+    if (!createRes.ok) {
+      const err = await createRes.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `Erro ao criar documento: ${createRes.status}`);
+    }
+
+    const doc = await createRes.json();
+    const documentId = doc.documentId;
+
+    // 2. Construir batchUpdate com os blocos em ordem
+    let currentIndex = 1;
+    const requests = [];
+
+    // Título no início
+    requests.push({
+      insertText: {
+        location: { index: currentIndex },
+        text: page.title + '\n\n'
+      }
+    });
+    requests.push({
+      updateParagraphStyle: {
+        range: {
+          startIndex: currentIndex,
+          endIndex: currentIndex + page.title.length
+        },
+        paragraphStyle: {
+          namedStyleType: 'HEADING_1'
+        },
+        fields: 'namedStyleType'
+      }
+    });
+    currentIndex += page.title.length + 2;
+
+    // Blocos da página
+    for (const block of page.blocks) {
+      if (block.type === 'divider') {
+        const divText = '--------------------------------------------------\n\n';
+        requests.push({
+          insertText: {
+            location: { index: currentIndex },
+            text: divText
+          }
+        });
+        requests.push({
+          updateTextStyle: {
+            range: {
+              startIndex: currentIndex,
+              endIndex: currentIndex + divText.length - 2
+            },
+            textStyle: {
+              color: {
+                color: {
+                  rgbColor: { red: 0.5, green: 0.5, blue: 0.5 }
+                }
+              }
+            },
+            fields: 'color'
+          }
+        });
+        currentIndex += divText.length;
+        continue;
+      }
+
+      let prefix = '';
+      if (block.type === 'bullet') prefix = '• ';
+      else if (block.type === 'numbered') prefix = '1. ';
+      else if (block.type === 'checkbox') prefix = block.checked ? '[X] ' : '[ ] ';
+
+      const rawContent = (block.content || '').trim();
+      const textToInsert = prefix + rawContent + '\n\n';
+      
+      requests.push({
+        insertText: {
+          location: { index: currentIndex },
+          text: textToInsert
+        }
+      });
+
+      let namedStyle = 'NORMAL_TEXT';
+      if (block.type === 'h1') namedStyle = 'HEADING_1';
+      else if (block.type === 'h2') namedStyle = 'HEADING_2';
+      else if (block.type === 'h3') namedStyle = 'HEADING_3';
+
+      if (namedStyle !== 'NORMAL_TEXT') {
+        requests.push({
+          updateParagraphStyle: {
+            range: {
+              startIndex: currentIndex,
+              endIndex: currentIndex + prefix.length + rawContent.length
+            },
+            paragraphStyle: {
+              namedStyleType: namedStyle
+            },
+            fields: 'namedStyleType'
+          }
+        });
+      }
+
+      if (block.type === 'quote') {
+        requests.push({
+          updateTextStyle: {
+            range: {
+              startIndex: currentIndex,
+              endIndex: currentIndex + rawContent.length
+            },
+            textStyle: {
+              italic: true,
+              color: {
+                color: {
+                  rgbColor: { red: 0.3, green: 0.3, blue: 0.3 }
+                }
+              }
+            },
+            fields: 'italic,color'
+          }
+        });
+      }
+
+      currentIndex += textToInsert.length;
+    }
+
+    // 3. Executar o batchUpdate
+    if (requests.length > 0) {
+      const updateUrl = `https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`;
+      const updateRes = await fetch(updateUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          requests
+        })
+      });
+
+      if (!updateRes.ok) {
+        const err = await updateRes.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `Erro ao formatar documento: ${updateRes.status}`);
+      }
+    }
+
+    return `https://docs.google.com/document/d/${documentId}/edit`;
   }
 
   // Formata o payload no padrão Google API

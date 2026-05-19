@@ -30,6 +30,10 @@ class EditorView {
               <span id="voice-record-icon">🎙️</span>
               <span id="voice-record-label">Nota por Voz</span>
             </button>
+            <button class="btn-ghost btn-sm" id="btn-export-docs" style="display:flex; align-items:center; gap:6px; font-weight:600;" title="Exportar esta anotação para o Google Docs">
+              <span>📄</span>
+              <span>Exportar Docs</span>
+            </button>
             <button class="btn-sm" id="btn-delete-page">🗑 Excluir</button>
           </div>
         </div>
@@ -108,6 +112,11 @@ class EditorView {
     // Voice record toggle
     document.getElementById('btn-record-voice')?.addEventListener('click', () => {
       EventBus.emit('ui:toggleVoiceRecording', { pageId: this.page.id });
+    });
+
+    // Google Docs export toggle
+    document.getElementById('btn-export-docs')?.addEventListener('click', () => {
+      EventBus.emit('ui:exportPageToGoogleDocs', { pageId: this.page.id });
     });
 
     // Slash menu items
