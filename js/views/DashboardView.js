@@ -160,19 +160,7 @@ class DashboardView {
         EventBus.emit('ui:deleteUsefulLink', { linkId: btn.dataset.linkId });
       });
     });
-    this.el.querySelectorAll('.useful-link-card').forEach(card => {
-      card.addEventListener('click', e => {
-        if (e.target.closest('button')) return;
-        const url = card.dataset.linkUrl;
-        if (url) window.open(url, '_blank', 'noopener,noreferrer');
-      });
-      card.addEventListener('keydown', e => {
-        if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button')) {
-          const url = card.dataset.linkUrl;
-          if (url) window.open(url, '_blank', 'noopener,noreferrer');
-        }
-      });
-    });
+
   }
 
   _renderSchedule(subjects, schedule) {
@@ -364,21 +352,23 @@ class DashboardView {
                  <span style="font-size:0.78rem; color:var(--text-muted);">Adicione sites, ferramentas ou recursos que você usa no dia a dia!</span>
                </div>`
             : links.map(l => `
-              <div class="useful-link-card" data-link-url="${l.url}" title="${l.url}" role="link" tabindex="0" style="cursor:pointer;">
-                <div class="useful-link-emoji">${l.emoji}</div>
-                <div class="useful-link-info">
-                  <div class="useful-link-title">${l.title}</div>
-                  ${l.description ? `<div class="useful-link-desc">${l.description}</div>` : ''}
-                  <div class="useful-link-url">${l.url.replace(/^https?:\/\//, '')}</div>
-                </div>
+              <div class="useful-link-card">
+                <a href="${l.url}" target="_blank" rel="noopener noreferrer" class="useful-link-card-link" title="${l.url}">
+                  <div class="useful-link-emoji">${l.emoji}</div>
+                  <div class="useful-link-info">
+                    <div class="useful-link-title">${l.title}</div>
+                    ${l.description ? `<div class="useful-link-desc">${l.description}</div>` : ''}
+                    <div class="useful-link-url">${l.url.replace(/^https?:\/\//, '')}</div>
+                  </div>
+                  <svg class="useful-link-arrow" viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.4;flex-shrink:0;pointer-events:none;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </a>
                 <div class="useful-link-actions">
                   <button class="btn-icon btn-edit-useful-link" data-link-id="${l.id}" title="Editar link">
-                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+                    <svg viewBox="0 0 24 24" style="pointer-events:none;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
                   </button>
                   <button class="btn-icon btn-delete-useful-link" data-link-id="${l.id}" title="Remover link">
-                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    <svg viewBox="0 0 24 24" style="pointer-events:none;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                   </button>
-                  <svg class="useful-link-arrow" viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.4;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                 </div>
               </div>
             `).join('')

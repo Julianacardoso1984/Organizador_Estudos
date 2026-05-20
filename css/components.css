@@ -1067,17 +1067,26 @@
 .useful-link-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 0;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  cursor: pointer;
   text-decoration: none;
   color: var(--text);
   transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
   position: relative;
   overflow: hidden;
+}
+.useful-link-card-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px;
+  text-decoration: none;
+  color: var(--text);
+  cursor: pointer;
 }
 .useful-link-card::before {
   content: '';
@@ -1086,6 +1095,7 @@
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 4%, transparent), transparent);
   opacity: 0;
   transition: opacity var(--transition);
+  pointer-events: none;
 }
 .useful-link-card:hover {
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
@@ -1138,7 +1148,9 @@
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
-  padding: 2px 0;
+  padding: 8px 8px 8px 0;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-delete-useful-link {
