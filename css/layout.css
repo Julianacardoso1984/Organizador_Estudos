@@ -108,6 +108,22 @@ body {
 .nav-item:hover { background: var(--bg-hover); color: var(--text); }
 .nav-item.active { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); font-weight: 500; }
 
+/* NotebookLM external link */
+.nav-item-external {
+  margin-top: 4px;
+  background: linear-gradient(135deg, color-mix(in srgb, #4285F4 10%, transparent), color-mix(in srgb, #34A853 8%, transparent));
+  border: 1px solid color-mix(in srgb, #4285F4 25%, transparent);
+  color: #4285F4 !important;
+  font-weight: 500;
+}
+.nav-item-external:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, #4285F4 18%, transparent), color-mix(in srgb, #34A853 14%, transparent)) !important;
+  border-color: color-mix(in srgb, #4285F4 45%, transparent);
+  color: #4285F4 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px color-mix(in srgb, #4285F4 20%, transparent);
+}
+
 .sidebar-section-header {
   display: flex;
   align-items: center;
