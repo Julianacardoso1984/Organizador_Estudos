@@ -56,7 +56,7 @@ class AppController {
   }
 
   _render() {
-    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel } = this.models;
+    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel, usefulLinksModel } = this.models;
     const subjects   = subjectModel.getAll();
     const pages      = pageModel.getAll();
     const tasks      = taskModel.getAll();
@@ -66,6 +66,7 @@ class AppController {
     const courses    = courseModel.getAll();
     const flashcards = flashcardModel.getAll();
     const quizzes    = quizModel.getAll();
+    const usefulLinks = usefulLinksModel.getAll();
 
     // Sidebar always visible
     this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route);
@@ -81,7 +82,7 @@ class AppController {
     switch (r.view) {
       case 'dashboard': {
         const schedule = Storage.get('studySchedule') || { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
-        this.views.dashboard.render(subjects, pages, tasks, calendar, schedule, timerModel.session, courses);
+        this.views.dashboard.render(subjects, pages, tasks, calendar, schedule, timerModel.session, courses, usefulLinks);
         break;
       }
 
@@ -601,6 +602,65 @@ class AppController {
     EventBus.on('ui:openCoursePlatform', ({ courseId }) => {
       this.navigate('platform-browser', { courseId });
     });
+
+    // ― Links Úteis ―
+    EventBus.on('ui:addUsefulLink', () => {
+      const { usefulLinksModel } = this.models;
+      this._openModal(`
+        <h2>Adicionar Link Útil 🔗</h2>
+        <div style="display:flex; flex-direction:column; gap:14px; margin: 16px 0;">
+          <div>
+            <label class="modal-label">Título do Link</label>
+            <input id="modal-link-title" class="modal-input" type="text" placeholder="Ex: NotebookLM, Stack Overflow, Artigo..." maxlength="60" style="width:100%;">
+          </div>
+          <div>
+            <label class="modal-label">URL</label>
+            <input id="modal-link-url" class="modal-input" type="text" placeholder="Ex: https://notebooklm.google.com" style="width:100%;">
+          </div>
+          <div>
+            <label class="modal-label">Descrição (opcional)</label>
+            <input id="modal-link-desc" class="modal-input" type="text" placeholder="Breve descrição do link..." maxlength="80" style="width:100%;">
+          </div>
+          <div>
+            <label class="modal-label">Emoji / Ícone</label>
+            <input id="modal-link-emoji" class="modal-input" type="text" placeholder="Ex: 🔗" value="🔗" maxlength="5" style="width:80px;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="modal-confirm-link">Salvar Link</button>
+        </div>
+      `, () => {
+        document.getElementById('modal-confirm-link')?.addEventListener('click', () => {
+          const title = document.getElementById('modal-link-title')?.value.trim();
+          const url   = document.getElementById('modal-link-url')?.value.trim();
+          const desc  = document.getElementById('modal-link-desc')?.value.trim();
+          const emoji = document.getElementById('modal-link-emoji')?.value.trim() || '🔗';
+          if (!title || !url) {
+            alert('Por favor, preencha o Título e a URL do link.');
+            return;
+          }
+          usefulLinksModel.create(title, url, emoji, desc);
+          this._closeModal();
+          this._toast('✅ Link adicionado com sucesso!');
+          this._render();
+        });
+        document.getElementById('modal-link-title')?.focus();
+      });
+    });
+
+    EventBus.on('ui:deleteUsefulLink', ({ linkId }) => {
+      const { usefulLinksModel } = this.models;
+      const link = usefulLinksModel.getById(linkId);
+      if (!link) return;
+      if (confirm(`Remover o link "${link.title}"?`)) {
+        usefulLinksModel.delete(linkId);
+        this._toast('🗑️ Link removido.');
+        this._render();
+      }
+    });
+
+    EventBus.on('usefulLinks:updated', () => this._render());
 
     // ─ Sons Ambientes ─
     EventBus.on('sound:toggle', ({ type }) => {

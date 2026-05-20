@@ -8,7 +8,7 @@ class DashboardView {
     this.el = document.getElementById('view-dashboard');
   }
 
-  render(subjects, pages, tasks, calendar, schedule = {}, focusSessions = 0, courses = []) {
+  render(subjects, pages, tasks, calendar, schedule = {}, focusSessions = 0, courses = [], usefulLinks = []) {
     const now   = new Date();
     const hour  = now.getHours();
     const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
@@ -82,6 +82,7 @@ class DashboardView {
         ${subjects.length > 0 ? this._renderSchedule(subjects, schedule) : ''}
         ${subjects.length > 0 ? this._renderProgress(subjects, pages, tasks) : ''}
         ${this._renderCourses(courses)}
+        ${this._renderUsefulLinks(usefulLinks)}
         <div class="dashboard-columns">
           ${recentPages.length > 0 ? this._renderRecent(recentPages, subjects) : ''}
           ${upcoming.length > 0 ? this._renderUpcoming(upcoming, subjects) : ''}
@@ -139,6 +140,17 @@ class DashboardView {
       if (confirm('Deseja zerar o tempo total focado nas estatísticas?')) {
         EventBus.emit('ui:resetFocusSessions');
       }
+    });
+
+    // Bind useful links buttons
+    this.el.querySelector('#btn-add-useful-link')?.addEventListener('click', () => {
+      EventBus.emit('ui:addUsefulLink');
+    });
+    this.el.querySelectorAll('.btn-delete-useful-link').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        EventBus.emit('ui:deleteUsefulLink', { linkId: btn.dataset.linkId });
+      });
     });
   }
 
@@ -306,6 +318,45 @@ class DashboardView {
                   <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round;"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
               </div>
+            `).join('')
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  _renderUsefulLinks(links) {
+    return `
+      <div class="dashboard-section useful-links-section" style="margin-top:32px; margin-bottom:32px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+          <h2 class="section-title" style="margin-bottom:0;">🔗 Links Úteis</h2>
+          <button class="btn-primary btn-sm" id="btn-add-useful-link" style="display:flex; align-items:center; gap:6px;">
+            <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar Link
+          </button>
+        </div>
+        <div class="useful-links-grid">
+          ${links.length === 0
+            ? `<div class="useful-links-empty">
+                 <span style="font-size:2rem; display:block; margin-bottom:10px;">🔗</span>
+                 <p style="margin:0 0 4px; font-size:0.9rem; font-weight:600; color:var(--text);">Nenhum link salvo ainda.</p>
+                 <span style="font-size:0.78rem; color:var(--text-muted);">Adicione sites, ferramentas ou recursos que você usa no dia a dia!</span>
+               </div>`
+            : links.map(l => `
+              <a href="${l.url}" target="_blank" rel="noopener noreferrer" class="useful-link-card" title="${l.url}">
+                <div class="useful-link-emoji">${l.emoji}</div>
+                <div class="useful-link-info">
+                  <div class="useful-link-title">${l.title}</div>
+                  ${l.description ? `<div class="useful-link-desc">${l.description}</div>` : ''}
+                  <div class="useful-link-url">${l.url.replace(/^https?:\/\//, '')}</div>
+                </div>
+                <div class="useful-link-actions">
+                  <button class="btn-icon btn-delete-useful-link" data-link-id="${l.id}" title="Remover link" onclick="event.preventDefault(); event.stopPropagation();">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                  </button>
+                  <svg class="useful-link-arrow" viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.4;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </div>
+              </a>
             `).join('')
           }
         </div>
