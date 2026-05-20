@@ -41,6 +41,22 @@ class UsefulLinksModel {
     return link;
   }
 
+  update(id, { title, url, emoji, description }) {
+    const link = this.links.find(l => l.id === id);
+    if (!link) return;
+    if (title !== undefined)       link.title       = title.trim();
+    if (emoji !== undefined)       link.emoji       = emoji;
+    if (description !== undefined) link.description = description.trim();
+    if (url !== undefined) {
+      let formattedUrl = url.trim();
+      if (!/^https?:\/\//i.test(formattedUrl)) formattedUrl = 'https://' + formattedUrl;
+      link.url = formattedUrl;
+    }
+    this._save();
+    EventBus.emit('usefulLinks:updated', this.getAll());
+    return link;
+  }
+
   delete(id) {
     this.links = this.links.filter(l => l.id !== id);
     this._save();

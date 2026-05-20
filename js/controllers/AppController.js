@@ -649,6 +649,54 @@ class AppController {
       });
     });
 
+    EventBus.on('ui:editUsefulLink', ({ linkId }) => {
+      const { usefulLinksModel } = this.models;
+      const link = usefulLinksModel.getById(linkId);
+      if (!link) return;
+
+      this._openModal(`
+        <h2>Editar Link ✏️</h2>
+        <div style="display:flex; flex-direction:column; gap:14px; margin: 16px 0;">
+          <div>
+            <label class="modal-label">Título do Link</label>
+            <input id="modal-edit-link-title" class="modal-input" type="text" value="${link.title}" maxlength="60" style="width:100%;">
+          </div>
+          <div>
+            <label class="modal-label">URL</label>
+            <input id="modal-edit-link-url" class="modal-input" type="text" value="${link.url}" style="width:100%;">
+          </div>
+          <div>
+            <label class="modal-label">Descrição (opcional)</label>
+            <input id="modal-edit-link-desc" class="modal-input" type="text" value="${link.description || ''}" maxlength="80" style="width:100%;">
+          </div>
+          <div>
+            <label class="modal-label">Emoji / Ícone</label>
+            <input id="modal-edit-link-emoji" class="modal-input" type="text" value="${link.emoji}" maxlength="5" style="width:80px;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="modal-confirm-edit-link">Salvar Alterações</button>
+        </div>
+      `, () => {
+        document.getElementById('modal-confirm-edit-link')?.addEventListener('click', () => {
+          const title = document.getElementById('modal-edit-link-title')?.value.trim();
+          const url   = document.getElementById('modal-edit-link-url')?.value.trim();
+          const desc  = document.getElementById('modal-edit-link-desc')?.value.trim();
+          const emoji = document.getElementById('modal-edit-link-emoji')?.value.trim() || '🔗';
+          if (!title || !url) {
+            alert('Por favor, preencha o Título e a URL do link.');
+            return;
+          }
+          usefulLinksModel.update(linkId, { title, url, emoji, description: desc });
+          this._closeModal();
+          this._toast('✅ Link atualizado com sucesso!');
+          this._render();
+        });
+        document.getElementById('modal-edit-link-title')?.focus();
+      });
+    });
+
     EventBus.on('ui:deleteUsefulLink', ({ linkId }) => {
       const { usefulLinksModel } = this.models;
       const link = usefulLinksModel.getById(linkId);

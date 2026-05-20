@@ -1147,6 +1147,13 @@
 .useful-link-card:hover .btn-delete-useful-link { opacity: 1; }
 .btn-delete-useful-link:hover { color: var(--danger) !important; }
 
+.btn-edit-useful-link {
+  opacity: 0;
+  transition: opacity var(--transition), color var(--transition);
+}
+.useful-link-card:hover .btn-edit-useful-link { opacity: 1; }
+.btn-edit-useful-link:hover { color: var(--accent) !important; }
+
 /* Preview Modal */
 .preview-header {
   display: flex;
