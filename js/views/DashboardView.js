@@ -160,6 +160,19 @@ class DashboardView {
         EventBus.emit('ui:deleteUsefulLink', { linkId: btn.dataset.linkId });
       });
     });
+    this.el.querySelectorAll('.useful-link-card').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const url = card.dataset.linkUrl;
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+      });
+      card.addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button')) {
+          const url = card.dataset.linkUrl;
+          if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        }
+      });
+    });
   }
 
   _renderSchedule(subjects, schedule) {
@@ -351,7 +364,7 @@ class DashboardView {
                  <span style="font-size:0.78rem; color:var(--text-muted);">Adicione sites, ferramentas ou recursos que você usa no dia a dia!</span>
                </div>`
             : links.map(l => `
-              <a href="${l.url}" target="_blank" rel="noopener noreferrer" class="useful-link-card" title="${l.url}">
+              <div class="useful-link-card" data-link-url="${l.url}" title="${l.url}" role="link" tabindex="0" style="cursor:pointer;">
                 <div class="useful-link-emoji">${l.emoji}</div>
                 <div class="useful-link-info">
                   <div class="useful-link-title">${l.title}</div>
@@ -367,7 +380,7 @@ class DashboardView {
                   </button>
                   <svg class="useful-link-arrow" viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.4;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                 </div>
-              </a>
+              </div>
             `).join('')
           }
         </div>
