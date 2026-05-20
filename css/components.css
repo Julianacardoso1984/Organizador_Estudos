@@ -65,6 +65,42 @@
 .dashboard-greeting h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; }
 .greeting-date { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
 
+/* Frase motivacional */
+.motivational-quote {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 0 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  max-width: 520px;
+  animation: fadeInUp 0.5s ease both;
+  animation-delay: 0.15s;
+}
+.quote-icon {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.quote-text {
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.5;
+  flex: 1;
+  min-width: 0;
+}
+.quote-author {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  opacity: 0.85;
+  letter-spacing: 0.02em;
+}
+
 .dashboard-clock {
   background: var(--bg-2);
   border: 1px solid var(--border);

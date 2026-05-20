@@ -26,12 +26,44 @@ class DashboardView {
       ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` 
       : `${totalMinutes}min`;
 
+    // Frases motivacionais — rotacionam a cada hora
+    const motivationalQuotes = [
+      { text: 'O sucesso é a soma de pequenos esforços repetidos dia após dia.', author: 'Robert Collier' },
+      { text: 'Educação não é a preparação para a vida; educação é a própria vida.', author: 'John Dewey' },
+      { text: 'A persistência é o caminho do êxito.', author: 'Charles Chaplin' },
+      { text: 'Invista em conhecimento. É o que rende mais juros.', author: 'Benjamin Franklin' },
+      { text: 'Quem tem um porquê para viver pode suportar quase qualquer como.', author: 'Friedrich Nietzsche' },
+      { text: 'A disciplina é a ponte entre metas e realizações.', author: 'Jim Rohn' },
+      { text: 'Cada dia é uma nova chance de mudar sua vida.', author: 'Provérbio' },
+      { text: 'Comece de onde você está, use o que você tem, faça o que puder.', author: 'Arthur Ashe' },
+      { text: 'O aprendizado é um tesouro que segue seu dono para todo lugar.', author: 'Provérbio Chinês' },
+      { text: 'Acredite que você pode e você já estará na metade do caminho.', author: 'Theodore Roosevelt' },
+      { text: 'Não importa o quão devagar você vai, desde que não pare.', author: 'Confúcio' },
+      { text: 'O conhecimento é a única coisa que ninguém pode tirar de você.', author: 'Provérbio' },
+      { text: 'Tudo parece impossível até que seja feito.', author: 'Nelson Mandela' },
+      { text: 'Estude enquanto os outros dormem; trabalhe enquanto os outros descansam.', author: 'William A. Ward' },
+      { text: 'O segredo de avançar é começar.', author: 'Mark Twain' },
+      { text: 'Você é mais bravo do que acredita, mais forte do que parece e mais inteligente do que pensa.', author: 'A.A. Milne' },
+      { text: 'A mente que se abre a uma nova ideia jamais voltará ao seu tamanho original.', author: 'Albert Einstein' },
+      { text: 'Dedicação hoje é o fundamento do sucesso amanhã.', author: 'Provérbio' },
+      { text: 'O esforço de hoje é a conquista de amanhã.', author: 'Provérbio' },
+      { text: 'Nada é particularmente difícil se você dividir em pequenos trabalhos.', author: 'Henry Ford' },
+    ];
+    const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+    const quoteIndex = (dayOfYear + now.getHours()) % motivationalQuotes.length;
+    const quote = motivationalQuotes[quoteIndex];
+
     this.el.innerHTML = `
       <div class="view-content dashboard-content">
         <div class="dashboard-greeting" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 32px;">
           <div>
             <h1>${greeting}! 👋</h1>
             <p class="greeting-date">${now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+            <blockquote class="motivational-quote">
+              <span class="quote-icon">✨</span>
+              <span class="quote-text">"${quote.text}"</span>
+              <span class="quote-author">— ${quote.author}</span>
+            </blockquote>
           </div>
           <div class="dashboard-clock" id="dashboard-clock" title="Hora atual">
             <span class="dash-clock-time">00:00:00</span>
