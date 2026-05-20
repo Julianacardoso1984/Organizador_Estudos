@@ -148,6 +148,7 @@ class DashboardView {
     });
     this.el.querySelectorAll('.btn-delete-useful-link').forEach(btn => {
       btn.addEventListener('click', e => {
+        e.preventDefault();
         e.stopPropagation();
         EventBus.emit('ui:deleteUsefulLink', { linkId: btn.dataset.linkId });
       });
@@ -351,7 +352,7 @@ class DashboardView {
                   <div class="useful-link-url">${l.url.replace(/^https?:\/\//, '')}</div>
                 </div>
                 <div class="useful-link-actions">
-                  <button class="btn-icon btn-delete-useful-link" data-link-id="${l.id}" title="Remover link" onclick="event.preventDefault(); event.stopPropagation();">
+                  <button class="btn-icon btn-delete-useful-link" data-link-id="${l.id}" title="Remover link">
                     <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                   </button>
                   <svg class="useful-link-arrow" viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.4;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
