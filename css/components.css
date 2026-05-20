@@ -1136,23 +1136,38 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
+  padding: 2px 0;
 }
 
 .btn-delete-useful-link {
   opacity: 0;
-  transition: opacity var(--transition), color var(--transition);
+  transition: opacity var(--transition), color var(--transition), background var(--transition);
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: var(--radius-sm);
+}
+.btn-delete-useful-link svg {
+  width: 18px !important;
+  height: 18px !important;
 }
 .useful-link-card:hover .btn-delete-useful-link { opacity: 1; }
-.btn-delete-useful-link:hover { color: var(--danger) !important; }
+.btn-delete-useful-link:hover { color: var(--danger) !important; background: color-mix(in srgb, var(--danger) 12%, transparent) !important; }
 
 .btn-edit-useful-link {
   opacity: 0;
-  transition: opacity var(--transition), color var(--transition);
+  transition: opacity var(--transition), color var(--transition), background var(--transition);
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: var(--radius-sm);
+}
+.btn-edit-useful-link svg {
+  width: 18px !important;
+  height: 18px !important;
 }
 .useful-link-card:hover .btn-edit-useful-link { opacity: 1; }
-.btn-edit-useful-link:hover { color: var(--accent) !important; }
+.btn-edit-useful-link:hover { color: var(--accent) !important; background: color-mix(in srgb, var(--accent) 12%, transparent) !important; }
 
 /* Preview Modal */
 .preview-header {
