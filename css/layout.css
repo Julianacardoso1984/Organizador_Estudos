@@ -1,7 +1,11 @@
 /* layout.css — Grid principal da aplicação */
 
 body {
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--bg-overlay, rgba(17,17,19,0.88)), var(--bg-overlay, rgba(17,17,19,0.88))), url('../assets/img/bg.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: var(--text);
   overflow: hidden;
   height: 100vh;
@@ -24,6 +28,8 @@ body {
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 #sidebar {
   background: var(--sidebar-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
