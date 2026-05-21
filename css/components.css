@@ -61,6 +61,25 @@
   background: color-mix(in srgb, var(--danger) 20%, transparent);
 }
 
+.btn-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--accent-3) 13%, transparent);
+  color: var(--accent-3);
+  border: 1px solid color-mix(in srgb, var(--accent-3) 27%, transparent);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.87rem;
+  font-weight: 500;
+  transition: background var(--transition);
+  cursor: pointer;
+}
+
+.btn-success:hover {
+  background: color-mix(in srgb, var(--accent-3) 22%, transparent);
+}
+
 .btn-icon {
   display: inline-flex;
   align-items: center;
