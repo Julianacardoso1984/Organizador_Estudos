@@ -7,17 +7,19 @@
   gap: 6px;
   background: var(--accent);
   color: #fff;
-  padding: 8px 16px;
+  padding: 8px 18px;
+  border: none;
   border-radius: var(--radius-sm);
   font-size: 0.87rem;
   font-weight: 500;
-  transition: opacity var(--transition), transform var(--transition);
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
   cursor: pointer;
 }
 
 .btn-primary:hover {
-  opacity: 0.88;
-  transform: translateY(-1px);
+  opacity: 0.92;
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .btn-sm {
@@ -29,17 +31,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  background: transparent;
   border: 1px solid var(--border);
   color: var(--text-muted);
-  padding: 8px 16px;
+  padding: 8px 18px;
   border-radius: var(--radius-sm);
   font-size: 0.87rem;
   font-weight: 500;
-  transition: background var(--transition), color var(--transition);
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .btn-ghost:hover {
   background: var(--bg-hover);
+  border-color: var(--border-light);
   color: var(--text);
 }
 
@@ -143,11 +147,11 @@
 }
 
 .select-input {
-  background: var(--bg-2);
+  background: var(--bg);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 7px 12px;
+  padding: 9px 12px;
   font-size: 0.87rem;
   cursor: pointer;
   transition: border-color var(--transition);
@@ -155,6 +159,7 @@
 
 .select-input:focus {
   border-color: var(--accent);
+  outline: none;
 }
 
 /* ── Dashboard ───────────────────────────────────────────────────────────── */
@@ -183,13 +188,13 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 12px 0 0 0;
-  padding: 10px 14px;
-  border-left: 3px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  gap: 8px;
+  margin: 16px 0 0 0;
+  padding: 14px 20px;
+  border-left: 4px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  max-width: 520px;
+  max-width: 580px;
   animation: fadeInUp 0.5s ease both;
   animation-delay: 0.15s;
 }
@@ -220,8 +225,8 @@
 .dashboard-clock {
   background: var(--bg-2);
   border: 1px solid var(--border);
-  padding: 8px 24px;
-  border-radius: var(--radius);
+  padding: 12px 28px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
@@ -231,7 +236,7 @@
 }
 
 .dash-clock-time {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: 800;
   font-family: 'Inter', monospace;
   color: var(--accent);
@@ -255,18 +260,19 @@
 .stat-card {
   background: var(--bg-2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
+  border-radius: var(--radius-lg);
+  padding: 24px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  border-top: 3px solid var(--accent);
-  transition: transform var(--transition), box-shadow var(--transition);
+  gap: 18px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow);
+  border-color: var(--border-light);
 }
 
 .stat-icon {
@@ -1255,8 +1261,8 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1267,7 +1273,7 @@
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 28px;
+  padding: 32px;
   width: 100%;
   max-width: 480px;
   max-height: 95vh;
