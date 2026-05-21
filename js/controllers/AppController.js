@@ -56,7 +56,7 @@ class AppController {
   }
 
   _render() {
-    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel, usefulLinksModel } = this.models;
+    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel, usefulLinksModel, topicModel } = this.models;
     const subjects   = subjectModel.getAll();
     const pages      = pageModel.getAll();
     const tasks      = taskModel.getAll();
@@ -72,7 +72,7 @@ class AppController {
     this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route);
 
     // Show correct view
-    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes','notes','integrations','discord-chat'];
+    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes','notes','integrations','discord-chat','topics'];
     allViews.forEach(v => {
       const el = document.getElementById(`view-${v}`);
       if (el) el.classList.toggle('hidden', v !== this._route.view);
@@ -104,6 +104,13 @@ class AppController {
         const subject = r.subjectId ? subjectModel.getById(r.subjectId) : null;
         const filtered = r.subjectId ? taskModel.getBySubject(r.subjectId) : tasks;
         this.views.tasks.render(filtered, subject, subjects);
+        break;
+      }
+
+      case 'topics': {
+        const subject = r.subjectId ? subjectModel.getById(r.subjectId) : null;
+        const filtered = r.subjectId ? topicModel.getBySubject(r.subjectId) : (topicModel ? topicModel.getAll() : []);
+        this.views.topics.render(filtered, subject, subjects);
         break;
       }
 
@@ -209,6 +216,7 @@ class AppController {
       taskModel.deleteBySubject(subjectId);
       materialModel.deleteBySubject(subjectId);
       mindMapModel.deleteBySubject(subjectId);
+      if (this.models.topicModel) this.models.topicModel.deleteBySubject(subjectId);
       subjectModel.delete(subjectId);
       this.navigate('dashboard');
     });
@@ -295,6 +303,55 @@ class AppController {
     EventBus.on('task:withDue', (task) => {
       const s = subjectModel.getById(task.subjectId);
       calendarModel.createFromTask(task, s?.color);
+    });
+
+    // ─ Topics ─
+    EventBus.on('topic:create', ({ subjectId, name }) => {
+      this.models.topicModel.create(subjectId, name);
+      this._toast('✅ Assunto adicionado!');
+      this._render();
+    });
+
+    EventBus.on('topic:toggle', ({ topicId }) => {
+      this.models.topicModel.toggleStudied(topicId);
+      this._render();
+    });
+
+    EventBus.on('topic:delete', ({ topicId }) => {
+      this.models.topicModel.delete(topicId);
+      this._toast('🗑️ Assunto excluído.');
+      this._render();
+    });
+
+    EventBus.on('topics:updated', () => this._render());
+
+    EventBus.on('ui:pickSubjectForTopic', ({ name }) => {
+      const subjects = this.models.subjectModel.getAll();
+      if (subjects.length === 0) {
+        alert('Crie uma matéria na barra lateral primeiro.');
+        return;
+      }
+      this._openModal(`
+        <h2>Selecionar Matéria</h2>
+        <p>Para qual matéria você quer adicionar este assunto?</p>
+        <select id="modal-pick-subject-topic" class="select-input">
+          ${subjects.map(s => `<option value="${s.id}">${s.emoji} ${s.name}</option>`).join('')}
+        </select>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="modal-confirm-topic-subj">Adicionar</button>
+        </div>
+      `, () => {
+        document.getElementById('modal-confirm-topic-subj')?.addEventListener('click', () => {
+          const subjectId = document.getElementById('modal-pick-subject-topic')?.value;
+          if (subjectId) {
+            this.models.topicModel.create(subjectId, name);
+            this._toast('✅ Assunto adicionado!');
+          }
+          this._closeModal();
+          this._render();
+        });
+      });
     });
 
     // ─ Calendar ─

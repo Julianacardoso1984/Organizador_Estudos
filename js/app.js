@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const flashcardModel = new FlashcardModel();
   const quizModel      = new QuizModel();
   const usefulLinksModel = new UsefulLinksModel();
+  const topicModel    = new TopicModel();
 
   // ── Views ─────────────────────────────────────────────────────────────────
   const sidebarView   = new SidebarView();
@@ -50,14 +51,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const quizView      = new QuizView();
   const integrationsView = new IntegrationsView();
   const discordChatView = new DiscordChatView();
+  const topicView     = new TopicView();
 
   // ── Controller ────────────────────────────────────────────────────────────
   const controller = new AppController(
-    { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel, usefulLinksModel },
+    { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel, usefulLinksModel, topicModel },
     { sidebar: sidebarView, notes: notesView, editor: editorView, dashboard: dashboardView,
       tasks: tasksView, timer: timerView, calendar: calendarView,
       materials: materialsView, mindmap: mindmapView, platformBrowser: platformBrowserView,
-      flashcard: flashcardView, quiz: quizView, integrations: integrationsView, discordChat: discordChatView }
+      flashcard: flashcardView, quiz: quizView, integrations: integrationsView, discordChat: discordChatView, topics: topicView }
   );
 
   // Expose for debug

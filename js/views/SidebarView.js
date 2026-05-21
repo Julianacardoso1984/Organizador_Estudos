@@ -140,6 +140,11 @@ class SidebarView {
             Tarefas
           </a>
 
+          <a href="#" class="child-item child-special ${activeRoute.view === 'topics' && activeRoute.subjectId === s.id ? 'active' : ''}" data-nav="topics" data-subject-id="${s.id}">
+            <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            Assuntos
+          </a>
+
           <a href="#" class="child-item child-special ${activeRoute.view === 'materials' && activeRoute.subjectId === s.id ? 'active' : ''}" data-nav="materials" data-subject-id="${s.id}">
             <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.41 17.41a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
             Materiais ${subjectMats.length > 0 ? `<span class="badge-sm">${subjectMats.length}</span>` : ''}
