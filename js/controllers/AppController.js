@@ -744,6 +744,110 @@ class AppController {
       this._render();
     });
 
+    EventBus.on('ui:generateAIFlashcards', ({ subjectId }) => {
+      const { flashcardModel, materialModel, subjectModel } = this.models;
+      const subject = subjectModel.getById(subjectId);
+      const materials = materialModel.getBySubject(subjectId);
+      const savedKey = Storage.get('geminiAPIKey') || '';
+
+      let materialsOption = '';
+      if (materials && materials.length > 0) {
+        materialsOption = `
+          <div>
+            <label class="modal-label">📚 Basear no material de estudo (Opcional)</label>
+            <select id="modal-fc-ai-material" class="select-input" style="width:100%;">
+              <option value="">Nenhum (usar Tema digitado acima)</option>
+              ${materials.map(m => `<option value="${m.id}">${m.name} (${m.type.toUpperCase()})</option>`).join('')}
+            </select>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height:1.4;">
+              A I.A analisará o material e criará flashcards com base no seu conteúdo!
+            </p>
+          </div>
+        `;
+      }
+
+      this._openModal(`
+        <h2>Gerar Flashcards com I.A 🪄</h2>
+        <div style="display:flex; flex-direction:column; gap:16px; margin:16px 0;">
+          <div>
+            <label class="modal-label">Tema / Assunto dos Flashcards</label>
+            <input id="modal-fc-ai-prompt" class="modal-input" type="text" placeholder="Ex: Fotossíntese, Segunda Guerra Mundial, Derivadas..." maxlength="100" style="width:100%;">
+          </div>
+          <div>
+            <label class="modal-label">Quantidade de cards</label>
+            <select id="modal-fc-ai-qty" class="select-input" style="width:140px;">
+              <option value="5">5 cards</option>
+              <option value="10" selected>10 cards</option>
+              <option value="15">15 cards</option>
+              <option value="20">20 cards</option>
+            </select>
+          </div>
+          ${materialsOption}
+          <div>
+            <label class="modal-label">Chave de API do Google Gemini (Opcional)</label>
+            <div style="display:flex; gap:8px;">
+              <input id="modal-fc-ai-key" class="modal-input" type="password" placeholder="Cole sua chave API do Gemini aqui..." value="${savedKey}" style="flex:1;">
+              <a href="https://aistudio.google.com/" target="_blank" class="btn-ghost" style="text-decoration:none; display:flex; align-items:center; font-size:0.75rem; padding:0 10px; border:1px solid var(--border); border-radius:var(--radius-sm);">Obter chave ↗</a>
+            </div>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height:1.4;">
+              A chave é salva apenas no seu navegador. Sem chave, usaremos o <strong>Modo Simulação local</strong> para gerar cards de exemplo!
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="modal-confirm-fc-ai" style="background:linear-gradient(135deg,#8B5CF6,#06B6D4);">Gerar Flashcards ✨</button>
+        </div>
+      `, () => {
+        document.getElementById('modal-confirm-fc-ai')?.addEventListener('click', async () => {
+          const prompt = document.getElementById('modal-fc-ai-prompt')?.value.trim();
+          const apiKey = document.getElementById('modal-fc-ai-key')?.value.trim();
+          const materialId = document.getElementById('modal-fc-ai-material')?.value;
+          const qty = parseInt(document.getElementById('modal-fc-ai-qty')?.value || '10', 10);
+
+          if (!prompt && !materialId) {
+            alert('Por favor, insira o tema ou selecione um material de estudo.');
+            return;
+          }
+
+          Storage.set('geminiAPIKey', apiKey);
+          this._closeModal();
+          this._toast('🪄 Gerando flashcards com I.A...');
+
+          try {
+            let cards = null;
+            if (apiKey) {
+              let fileData = null;
+              if (materialId) {
+                const meta = materialModel.getById(materialId);
+                const blob = await materialModel.getBlob(materialId);
+                if (meta && blob) {
+                  const base64 = await this._blobToBase64(blob);
+                  fileData = { mimeType: meta.mimeType || blob.type, base64 };
+                }
+              }
+              const finalPrompt = prompt || (materialId ? `Conteúdo do arquivo ${materialModel.getById(materialId)?.name}` : '');
+              cards = await this._fetchGeminiFlashcards(finalPrompt, apiKey, qty, fileData);
+            } else {
+              const topic = prompt || (materialId ? materialModel.getById(materialId)?.name.split('.')[0] : 'Conteúdo de Estudo');
+              cards = this._generateLocalMockFlashcards(topic, qty);
+              this._toast('✨ Cards gerados via simulação local! Para I.A real, adicione uma chave Gemini.');
+            }
+
+            if (cards && cards.length > 0) {
+              cards.forEach(c => flashcardModel.create(subjectId, c.front, c.back));
+              this._toast(`✅ ${cards.length} flashcards gerados com sucesso!`);
+              this._render();
+            }
+          } catch (e) {
+            console.error(e);
+            alert('Falha ao gerar flashcards: ' + e.message);
+          }
+        });
+        document.getElementById('modal-fc-ai-prompt')?.focus();
+      });
+    });
+
     // ─ Simulados & Quizzes ─
     EventBus.on('ui:openModalQuiz', ({ html, callback }) => {
       this._openModal(html, callback);
@@ -1918,5 +2022,80 @@ Retorne estritamente o texto formatado em Markdown, sem nenhuma introdução ou 
 
     const data = await res.json();
     return data.files || [];
+  }
+
+  // ── MÉTODOS AUXILIARES: FLASHCARDS POR I.A ────────────────────────────────
+
+  async _fetchGeminiFlashcards(prompt, apiKey, qty = 10, fileData = null) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const baseInstruction = `Você é um especialista em pedagogia e memorização ativa (método Leitner / repetição espaçada).
+Gere exatamente ${qty} flashcards de estudo de alta qualidade sobre o tema: "${prompt}".
+Retorne ESTRITAMENTE um array JSON válido, sem markdown ou texto extra, apenas o JSON puro.
+Cada item deve ter: { "front": "Pergunta ou conceito", "back": "Resposta detalhada e clara" }.
+As perguntas devem cobrir definições, causas, consequências, exemplos e aplicações práticas do tema.
+Exemplo de formato esperado:
+[
+  { "front": "O que é fotossíntese?", "back": "Processo pelo qual plantas convertem luz solar, CO₂ e água em glicose e oxigênio." },
+  { "front": "Onde ocorre a fotossíntese?", "back": "Principalmente nos cloroplastos das células vegetais, especialmente nas folhas." }
+]`;
+
+    const parts = [];
+    if (fileData) {
+      parts.push({ inlineData: { mimeType: fileData.mimeType, data: fileData.base64 } });
+      parts.push({ text: `Analise o material em anexo e, com base nele, ${baseInstruction}` });
+    } else {
+      parts.push({ text: baseInstruction });
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    let text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Resposta vazia da I.A.');
+    text = text.trim();
+    if (text.startsWith('```')) {
+      text = text.replace(/^```json\s*/, '').replace(/```$/, '').trim();
+    }
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : parsed.flashcards || [];
+  }
+
+  _generateLocalMockFlashcards(topic, qty = 10) {
+    const templates = [
+      { front: `O que é ${topic}?`, back: `${topic} é um conceito fundamental que envolve a compreensão de princípios teóricos e sua aplicação prática no contexto de estudo.` },
+      { front: `Qual a importância de ${topic}?`, back: `${topic} é importante pois forma a base para compreender conceitos mais avançados na área, permitindo maior domínio do conteúdo.` },
+      { front: `Quais são os principais elementos de ${topic}?`, back: `Os principais elementos incluem: fundamentos teóricos, aplicações práticas, exemplos contextualizados e conexões com outros temas da matéria.` },
+      { front: `Como ${topic} se aplica na prática?`, back: `Na prática, ${topic} pode ser observado em situações cotidianas e exercícios, sendo essencial para resolver problemas complexos da área.` },
+      { front: `Qual a origem histórica de ${topic}?`, back: `${topic} surgiu como resposta a necessidades específicas da área de estudo, evoluindo ao longo do tempo com novas descobertas e pesquisas.` },
+      { front: `Quais são os erros comuns ao estudar ${topic}?`, back: `Os erros mais comuns incluem: pular a base teórica, não praticar exercícios, não revisar regularmente e não fazer conexões com outros conteúdos.` },
+      { front: `Como ${topic} se relaciona com outros conceitos?`, back: `${topic} possui forte relação com conceitos adjacentes da matéria, formando uma rede de conhecimento integrada e interdependente.` },
+      { front: `Cite um exemplo prático de ${topic}.`, back: `Um exemplo prático é sua aplicação em resolução de problemas reais, onde os princípios de ${topic} permitem encontrar soluções estruturadas e eficazes.` },
+      { front: `Quais são os benefícios de dominar ${topic}?`, back: `Dominar ${topic} amplia o repertório intelectual, melhora a capacidade analítica e abre portas para compreender tópicos avançados com facilidade.` },
+      { front: `Resuma ${topic} em uma frase.`, back: `${topic} é o conjunto de princípios, métodos e aplicações que estruturam o entendimento profundo desta área do conhecimento.` },
+      { front: `Quais são as diferenças entre ${topic} e conceitos similares?`, back: `Diferente de conceitos similares, ${topic} se destaca pela sua especificidade, abrangência e aplicabilidade direta nos problemas da área.` },
+      { front: `Por que ${topic} é cobrado em provas?`, back: `${topic} é recorrente em avaliações pois representa um pilar central do conhecimento da matéria, exigindo compreensão profunda e não apenas memorização.` },
+      { front: `Quais recursos ajudam a estudar ${topic}?`, back: `Livros didáticos, videoaulas, exercícios práticos, mapas mentais e flashcards de repetição espaçada são os melhores recursos para fixar ${topic}.` },
+      { front: `Como revisar ${topic} de forma eficiente?`, back: `A revisão eficiente usa o método Leitner (repetição espaçada), intercalando ${topic} com outros temas para fortalecer as conexões neurais.` },
+      { front: `Qual a fórmula / definição formal de ${topic}?`, back: `A definição formal de ${topic} abrange seus elementos constitutivos, relações com outras variáveis e o contexto teórico em que é aplicado.` },
+      { front: `Quais são os tipos ou categorias de ${topic}?`, back: `${topic} pode ser classificado em diferentes categorias conforme critérios específicos da área, cada uma com características e usos particulares.` },
+      { front: `Qual o impacto de ${topic} na área de estudo?`, back: `${topic} transformou profundamente a área ao fornecer novas ferramentas teóricas e práticas, influenciando pesquisas, métodos e aplicações.` },
+      { front: `Como ${topic} é avaliado em contexto acadêmico?`, back: `Em contexto acadêmico, ${topic} é avaliado por meio de questões conceituais, exercícios aplicados, análise de casos e provas discursivas.` },
+      { front: `Qual a crítica mais comum a ${topic}?`, back: `A crítica mais comum é a de que ${topic} pode ser abstraído demais sem prática adequada, tornando o aprendizado superficial sem aplicação real.` },
+      { front: `Como ${topic} evoluiu ao longo do tempo?`, back: `Ao longo do tempo, ${topic} foi sendo refinado por pesquisadores e educadores, incorporando novas descobertas e adaptações ao contexto moderno.` }
+    ];
+    return templates.slice(0, Math.min(qty, templates.length));
   }
 }

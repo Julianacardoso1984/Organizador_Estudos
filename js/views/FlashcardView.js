@@ -108,8 +108,12 @@ class FlashcardView {
           
           <!-- Formulário de Criação -->
           <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:20px; box-shadow:var(--shadow-sm);">
-            <h3 style="margin:0 0 16px 0; font-size:0.95rem; font-weight:700; color:var(--text); border-bottom:1px solid var(--border); padding-bottom:8px;">
+            <h3 style="margin:0 0 16px 0; font-size:0.95rem; font-weight:700; color:var(--text); border-bottom:1px solid var(--border); padding-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
               📝 Criar Novo Flashcard
+              <button class="btn-ai-fc btn-primary btn-sm" id="btn-ai-generate-fc" style="background: linear-gradient(135deg,#8B5CF6,#06B6D4); font-size:0.78rem; padding:5px 10px; gap:5px; display:flex; align-items:center;">
+                <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                Gerar com I.A
+              </button>
             </h3>
             <div style="display:flex; flex-direction:column; gap:12px;">
               <div>
@@ -192,6 +196,11 @@ class FlashcardView {
           this._studyIndex++;
         }
       });
+    });
+
+    // Gerar Flashcards por IA
+    this.el.querySelector('#btn-ai-generate-fc')?.addEventListener('click', () => {
+      EventBus.emit('ui:generateAIFlashcards', { subjectId });
     });
 
     // Criar Flashcard
