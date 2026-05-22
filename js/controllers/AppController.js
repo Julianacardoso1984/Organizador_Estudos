@@ -421,15 +421,22 @@ class AppController {
     EventBus.on('mindmaps:updated', () => this._renderSidebar());
 
     // ─ Timer ─
-    EventBus.on('timer:toggle',   () => { this.models.timerModel.toggle();             this._renderTimer(); });
-    EventBus.on('timer:reset',    () => { this.models.timerModel.reset();              this._renderTimer(); });
-    EventBus.on('timer:skip',     () => { this.models.timerModel._complete();          this._renderTimer(); });
-    EventBus.on('timer:setMode',  (mode) => { this.models.timerModel.setMode(mode);   this._renderTimer(); });
-    EventBus.on('timer:tick',     () => { if(this._route.view==='timer') this._renderTimer(); });
+    const updateDashTimer = () => {
+      if(this._route.view === 'dashboard') {
+        this.views.dashboard.updateTimer(this.models.timerModel._state());
+      }
+    };
+
+    EventBus.on('timer:toggle',   () => { this.models.timerModel.toggle();             this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:reset',    () => { this.models.timerModel.reset();              this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:skip',     () => { this.models.timerModel._complete();          this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:setMode',  (mode) => { this.models.timerModel.setMode(mode);   this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:tick',     () => { if(this._route.view==='timer') this._renderTimer(); updateDashTimer(); });
     EventBus.on('timer:complete', ({ mode, session }) => {
       const msg = mode==='focus' ? '✅ Sessão de foco concluída!' : '🎯 Hora de focar!';
       this._toast(msg);
       if(this._route.view==='timer') this._renderTimer();
+      updateDashTimer();
 
       if (mode === 'focus' && Discord.isEnabled('pomodoro')) {
         Discord.sendEmbed({

@@ -8,7 +8,7 @@ class DashboardView {
     this.el = document.getElementById('view-dashboard');
   }
 
-  render(subjects, pages, tasks, calendar, schedule = {}, focusSessions = 0, courses = [], usefulLinks = []) {
+  render(subjects, pages, tasks, calendar, schedule = {}, focusSessions = 0, courses = [], usefulLinks = [], timerState = null) {
     const now   = new Date();
     const hour  = now.getHours();
     const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
@@ -65,8 +65,11 @@ class DashboardView {
               <span class="quote-author">— ${quote.author}</span>
             </blockquote>
           </div>
-          <div class="dashboard-clock" id="dashboard-clock" title="Hora atual">
-            <span class="dash-clock-time">00:00:00</span>
+          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            ${this._renderPomodoroWidget(timerState)}
+            <div class="dashboard-clock" id="dashboard-clock" title="Hora atual">
+              <span class="dash-clock-time">00:00:00</span>
+            </div>
           </div>
         </div>
         <div class="stats-grid">
@@ -159,8 +162,87 @@ class DashboardView {
         e.stopPropagation();
         EventBus.emit('ui:deleteUsefulLink', { linkId: btn.dataset.linkId });
       });
+    // Timer bindings
+    this.el.querySelector('.dash-pomodoro-toggle')?.addEventListener('click', e => {
+      e.stopPropagation();
+      EventBus.emit('timer:toggle');
+    });
+    this.el.querySelector('.dash-pomodoro-reset')?.addEventListener('click', e => {
+      e.stopPropagation();
+      EventBus.emit('timer:reset');
+    });
+    this.el.querySelector('.dash-pomodoro-skip')?.addEventListener('click', e => {
+      e.stopPropagation();
+      EventBus.emit('timer:skip');
     });
 
+  }
+
+  updateTimer(state) {
+    if (!state) return;
+    const { mode, label, total, remaining, running } = state;
+    const pct = ((total - remaining) / total) * 100;
+    const mins = String(Math.floor(remaining/60)).padStart(2,'0');
+    const secs = String(remaining % 60).padStart(2,'0');
+
+    const displayEl = this.el.querySelector('.dash-pomodoro-time');
+    const labelEl = this.el.querySelector('.dash-pomodoro-label');
+    const playBtn = this.el.querySelector('.dash-pomodoro-toggle');
+    const svgFg = this.el.querySelector('.dash-pomodoro-ring-fg');
+
+    if (displayEl) displayEl.textContent = `${mins}:${secs}`;
+    if (labelEl) labelEl.textContent = label;
+    if (playBtn) {
+       playBtn.innerHTML = running 
+         ? `<svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor; fill:none; stroke-width:2;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pausar`
+         : `<svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor; fill:none; stroke-width:2;"><polygon points="5 3 19 12 5 21 5 3"/></svg> Iniciar`;
+    }
+    if (svgFg) {
+       const radius = 30;
+       const circ = 2 * Math.PI * radius;
+       const dash = circ - (pct / 100) * circ;
+       svgFg.setAttribute('stroke-dasharray', circ);
+       svgFg.setAttribute('stroke-dashoffset', dash);
+       svgFg.style.stroke = mode === 'focus' ? '#8B5CF6' : mode === 'shortBreak' ? '#06B6D4' : '#10B981';
+    }
+  }
+
+  _renderPomodoroWidget(state) {
+    if (!state) return '';
+    const { mode, label, total, remaining, running } = state;
+    const pct = ((total - remaining) / total) * 100;
+    const mins = String(Math.floor(remaining/60)).padStart(2,'0');
+    const secs = String(remaining % 60).padStart(2,'0');
+    const radius = 30;
+    const circ   = 2 * Math.PI * radius;
+    const dash   = circ - (pct / 100) * circ;
+    const color  = mode === 'focus' ? '#8B5CF6' : mode === 'shortBreak' ? '#06B6D4' : '#10B981';
+
+    return `
+      <div class="dash-pomodoro-widget" style="display:flex; align-items:center; gap:16px; background:var(--bg-card); padding:12px 20px; border-radius:var(--radius-md); border:1px solid var(--border); box-shadow:var(--shadow-sm);">
+        <div style="position:relative; width:70px; height:70px;">
+          <svg viewBox="0 0 70 70" style="transform: rotate(-90deg); width:100%; height:100%;">
+            <circle cx="35" cy="35" r="${radius}" style="fill:none; stroke:var(--border); stroke-width:4;"/>
+            <circle cx="35" cy="35" r="${radius}" class="dash-pomodoro-ring-fg" style="fill:none; stroke:${color}; stroke-width:4; stroke-linecap:round; transition: stroke-dashoffset 0.5s ease;" stroke-dasharray="${circ}" stroke-dashoffset="${dash}"/>
+          </svg>
+          <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1rem; color:var(--text);" class="dash-pomodoro-time">${mins}:${secs}</div>
+        </div>
+        <div>
+          <div style="font-weight:600; color:var(--text); margin-bottom:8px; font-size:0.95rem;" class="dash-pomodoro-label">${label}</div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-primary btn-sm dash-pomodoro-toggle" style="display:flex; align-items:center; gap:4px; padding:6px 12px; min-width: 85px; justify-content: center;">
+              ${running ? `<svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor; fill:none; stroke-width:2;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pausar` : `<svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor; fill:none; stroke-width:2;"><polygon points="5 3 19 12 5 21 5 3"/></svg> Iniciar`}
+            </button>
+            <button class="btn-icon btn-sm dash-pomodoro-reset" title="Reiniciar" style="border:1px solid var(--border);">
+              <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor; fill:none; stroke-width:2;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            </button>
+            <button class="btn-icon btn-sm dash-pomodoro-skip" title="Pular" style="border:1px solid var(--border);">
+              <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor; fill:none; stroke-width:2;"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   _renderSchedule(subjects, schedule) {
