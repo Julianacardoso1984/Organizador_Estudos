@@ -439,6 +439,8 @@ class SidebarView {
     this.el.querySelectorAll('[data-toggle]').forEach(el => {
       el.addEventListener('click', (e) => {
         const id = el.dataset.toggle;
+        // Inicializa explicitamente como true se nunca foi definido
+        if (this._expanded[id] === undefined) this._expanded[id] = true;
         this._expanded[id] = !this._expanded[id];
         const chevron = el.querySelector('.subject-chevron');
         const children = el.closest('.subject-item').querySelector('.subject-children');
