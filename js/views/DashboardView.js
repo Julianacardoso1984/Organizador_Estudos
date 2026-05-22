@@ -162,6 +162,8 @@ class DashboardView {
         e.stopPropagation();
         EventBus.emit('ui:deleteUsefulLink', { linkId: btn.dataset.linkId });
       });
+    });
+
     // Timer bindings
     this.el.querySelector('.dash-pomodoro-toggle')?.addEventListener('click', e => {
       e.stopPropagation();
