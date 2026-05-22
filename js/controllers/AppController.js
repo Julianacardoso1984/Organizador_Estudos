@@ -82,7 +82,7 @@ class AppController {
     switch (r.view) {
       case 'dashboard': {
         const schedule = Storage.get('studySchedule') || { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
-        this.views.dashboard.render(subjects, pages, tasks, calendar, schedule, timerModel.session, courses, usefulLinks);
+        this.views.dashboard.render(subjects, pages, tasks, calendar, schedule, timerModel.session, courses, usefulLinks, timerModel._state());
         break;
       }
 
