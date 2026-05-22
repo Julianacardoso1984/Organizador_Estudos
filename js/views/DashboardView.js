@@ -98,6 +98,14 @@ class DashboardView {
       });
     });
 
+    // Zerar tempo focado
+    this.el.querySelector('#btn-reset-focus-time')?.addEventListener('click', e => {
+      e.stopPropagation();
+      if (confirm('Deseja zerar o tempo total focado nas estatísticas?')) {
+        EventBus.emit('ui:resetFocusSessions');
+      }
+    });
+
     // Timer bindings
     this.el.querySelector('.dash-pomodoro-toggle')?.addEventListener('click', e => {
       e.stopPropagation();
