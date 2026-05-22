@@ -248,6 +248,7 @@ body {
   padding: 10px 12px;
 }
 
+
 .sidebar-backup-actions {
   display: flex;
   flex-direction: column;
@@ -257,6 +258,157 @@ body {
   padding-bottom: 8px;
 }
 
+/* ── Sidebar Schedule Section ─────────────────────────────────────────────── */
+.sidebar-schedule-section {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-schedule-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+}
+.sidebar-schedule-header:hover { background: var(--bg-hover); }
+
+.sidebar-schedule-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.sched-toggle-chevron {
+  color: var(--text-dim);
+  transition: transform var(--transition);
+}
+.sched-toggle-chevron.open { transform: rotate(90deg); }
+
+.sidebar-schedule-body {
+  padding: 4px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sidebar-schedule-body.hidden { display: none; }
+
+.sched-day-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 26px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.sched-day-row:hover { background: var(--bg-hover); }
+.sched-today { background: color-mix(in srgb, var(--accent) 6%, transparent) !important; }
+
+.sched-day-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 32px;
+  flex-shrink: 0;
+  padding-top: 3px;
+}
+.sched-day-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: 28px;
+}
+.sched-today-label { color: var(--accent) !important; }
+.sched-today-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.sched-day-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+  flex: 1;
+}
+
+.sched-empty-day {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  padding: 2px 0;
+}
+
+.sched-subject-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-left: 2px solid;
+  border-radius: 3px;
+  padding: 2px 5px 2px 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text);
+  max-width: 110px;
+}
+.sched-pill-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 68px;
+}
+.sched-remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0 1px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+.sched-subject-pill:hover .sched-remove-btn { opacity: 1; }
+.sched-remove-btn:hover { color: #ef4444; }
+
+.sched-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px dashed var(--border);
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition), background var(--transition), border-color var(--transition);
+  flex-shrink: 0;
+}
+.sched-day-row:hover .sched-add-btn { opacity: 1; }
+.sched-add-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Ocultar cronograma na sidebar colapsada */
+#app-layout.sidebar-collapsed .sidebar-schedule-section { display: none; }
 
 .theme-toggle {
   display: flex; align-items: center; gap: 6px;

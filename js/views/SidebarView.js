@@ -8,15 +8,17 @@ class SidebarView {
     this.el = document.getElementById('sidebar');
     this.collapsed = false;
     this._expanded = {};   // subjectId → boolean (expandido?)
+    this._scheduleExpanded = true; // cronograma aberto por padrão
   }
 
-  render(subjects, pages, tasks, mindmaps, materials, activeRoute) {
+  render(subjects, pages, tasks, mindmaps, materials, activeRoute, schedule = {}) {
     this._subjects   = subjects;
     this._pages      = pages;
     this._tasks      = tasks;
     this._mindmaps   = mindmaps;
     this._materials  = materials;
     this._active     = activeRoute;
+    this._schedule   = schedule;
 
     this.el.innerHTML = `
       <div class="sidebar-header">
@@ -64,6 +66,8 @@ class SidebarView {
         </a>
       </nav>
 
+      ${this._renderScheduleSection(subjects, schedule)}
+
       <div class="sidebar-section-header">
         <span>MATÉRIAS</span>
         <button class="btn-icon btn-add-subject" id="btn-new-subject" title="Nova matéria">
@@ -100,6 +104,69 @@ class SidebarView {
     `;
 
     this._bindEvents();
+  }
+
+  _renderScheduleSection(subjects, schedule) {
+    const days = [
+      { key: 'mon', name: 'Seg', short: 'S' },
+      { key: 'tue', name: 'Ter', short: 'T' },
+      { key: 'wed', name: 'Qua', short: 'Q' },
+      { key: 'thu', name: 'Qui', short: 'Q' },
+      { key: 'fri', name: 'Sex', short: 'S' },
+      { key: 'sat', name: 'Sáb', short: 'S' },
+      { key: 'sun', name: 'Dom', short: 'D' },
+    ];
+
+    // Descobrir dia da semana atual (0=dom,1=seg...)
+    const todayIdx = new Date().getDay(); // 0=dom
+    const keyMap = ['sun','mon','tue','wed','thu','fri','sat'];
+    const todayKey = keyMap[todayIdx];
+
+    const rows = days.map(d => {
+      const ids = schedule[d.key] || [];
+      const daySubjects = ids.map(id => subjects.find(s => s.id === id)).filter(Boolean);
+      const isToday = d.key === todayKey;
+
+      return `
+        <div class="sched-day-row ${isToday ? 'sched-today' : ''}">
+          <div class="sched-day-label">
+            <span class="sched-day-name ${isToday ? 'sched-today-label' : ''}">${d.name}</span>
+            ${isToday ? '<span class="sched-today-dot"></span>' : ''}
+          </div>
+          <div class="sched-day-subjects">
+            ${daySubjects.length === 0
+              ? '<span class="sched-empty-day">—</span>'
+              : daySubjects.map(s => `
+                <div class="sched-subject-pill" style="border-left-color:${s.color}; background: color-mix(in srgb, ${s.color} 12%, var(--bg-3));" title="${this._esc(s.name)}">
+                  <span>${s.emoji}</span>
+                  <span class="sched-pill-name">${this._esc(s.name)}</span>
+                  <button class="sched-remove-btn btn-remove-schedule" data-day="${d.key}" data-subject-id="${s.id}" title="Remover">×</button>
+                </div>
+              `).join('')}
+            <button class="sched-add-btn btn-add-schedule" data-day="${d.key}" title="Adicionar matéria no ${d.name}">
+              <svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="sidebar-schedule-section">
+        <div class="sidebar-schedule-header" id="btn-toggle-schedule">
+          <span class="sidebar-schedule-title">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            CRONOGRAMA
+          </span>
+          <button class="btn-icon sched-toggle-chevron ${this._scheduleExpanded ? 'open' : ''}" id="sched-chevron" style="width:18px;height:18px;">
+            <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="sidebar-schedule-body ${this._scheduleExpanded ? '' : 'hidden'}" id="sidebar-schedule-body">
+          ${rows}
+        </div>
+      </div>
+    `;
   }
 
   _renderSubject(s, pages, tasks, mindmaps, materials, activeRoute) {
@@ -218,6 +285,32 @@ class SidebarView {
     // Search
     document.getElementById('sidebar-search')?.addEventListener('input', (e) => {
       EventBus.emit('ui:search', e.target.value);
+    });
+
+    // Toggle schedule section
+    document.getElementById('btn-toggle-schedule')?.addEventListener('click', () => {
+      this._scheduleExpanded = !this._scheduleExpanded;
+      const body = document.getElementById('sidebar-schedule-body');
+      const chevron = document.getElementById('sched-chevron');
+      body?.classList.toggle('hidden', !this._scheduleExpanded);
+      chevron?.classList.toggle('open', this._scheduleExpanded);
+    });
+
+    // Schedule: add matéria ao dia
+    this.el.querySelectorAll('.btn-add-schedule').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        EventBus.emit('ui:addScheduleSubject', { day: btn.dataset.day });
+      });
+    });
+
+    // Schedule: remover matéria do dia
+    this.el.querySelectorAll('.btn-remove-schedule').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const { day, subjectId } = btn.dataset;
+        EventBus.emit('ui:removeScheduleSubject', { day, subjectId });
+      });
     });
 
     // Subject toggle expand/collapse

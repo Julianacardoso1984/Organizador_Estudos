@@ -82,7 +82,6 @@ class DashboardView {
             </button>
           `)}
         </div>
-        ${subjects.length > 0 ? this._renderSchedule(subjects, schedule) : ''}
         ${subjects.length > 0 ? this._renderProgress(subjects, pages, tasks) : ''}
         ${this._renderCourses(courses)}
         ${this._renderUsefulLinks(usefulLinks)}
@@ -98,23 +97,6 @@ class DashboardView {
       el.addEventListener('click', e => {
         e.preventDefault();
         EventBus.emit('navigate', {view:el.dataset.nav, pageId:el.dataset.pageId, subjectId:el.dataset.subjectId});
-      });
-    });
-
-    // Bind schedule add clicks
-    this.el.querySelectorAll('.btn-add-schedule').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        EventBus.emit('ui:addScheduleSubject', { day: btn.dataset.day });
-      });
-    });
-
-    // Bind schedule remove clicks
-    this.el.querySelectorAll('.btn-remove-schedule').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const { day, subjectId } = btn.dataset;
-        EventBus.emit('ui:removeScheduleSubject', { day, subjectId });
       });
     });
 
