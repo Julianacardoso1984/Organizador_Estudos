@@ -88,10 +88,6 @@ class SidebarView {
       </div>
 
       <div class="sidebar-footer">
-        <div class="sidebar-clock-widget" id="sidebar-clock" title="Hora atual">
-          <span class="clock-time">00:00:00</span>
-          <span class="clock-date">Carregando...</span>
-        </div>
         <div class="sidebar-backup-actions">
           <button class="theme-toggle" id="btn-export-backup" title="Exportar Backup de Dados">
             <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
