@@ -70,7 +70,7 @@ class AppController {
     const schedule = Storage.get('studySchedule') || { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
 
     // Sidebar always visible
-    this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route, schedule);
+    this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route, schedule, courses, usefulLinks);
 
     // Show correct view
     const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes','notes','integrations','discord-chat','topics'];
@@ -82,7 +82,7 @@ class AppController {
     const r = this._route;
     switch (r.view) {
       case 'dashboard': {
-        this.views.dashboard.render(subjects, pages, tasks, calendar, {}, timerModel.session, courses, usefulLinks, timerModel._state());
+        this.views.dashboard.render(subjects, pages, tasks, calendar, {}, timerModel.session, [], [], timerModel._state());
         break;
       }
 

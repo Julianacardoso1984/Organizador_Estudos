@@ -83,8 +83,6 @@ class DashboardView {
           `)}
         </div>
         ${subjects.length > 0 ? this._renderProgress(subjects, pages, tasks) : ''}
-        ${this._renderCourses(courses)}
-        ${this._renderUsefulLinks(usefulLinks)}
         <div class="dashboard-columns">
           ${recentPages.length > 0 ? this._renderRecent(recentPages, subjects) : ''}
           ${upcoming.length > 0 ? this._renderUpcoming(upcoming, subjects) : ''}
@@ -97,52 +95,6 @@ class DashboardView {
       el.addEventListener('click', e => {
         e.preventDefault();
         EventBus.emit('navigate', {view:el.dataset.nav, pageId:el.dataset.pageId, subjectId:el.dataset.subjectId});
-      });
-    });
-
-    // Bind course platform buttons
-    this.el.querySelector('#btn-add-course')?.addEventListener('click', () => {
-      EventBus.emit('ui:addCoursePlatform');
-    });
-
-    this.el.querySelectorAll('.btn-delete-course').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        EventBus.emit('ui:deleteCoursePlatform', { courseId: btn.dataset.courseId });
-      });
-    });
-
-    this.el.querySelectorAll('.btn-open-platform').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        EventBus.emit('ui:openCoursePlatform', { courseId: btn.dataset.courseId });
-      });
-    });
-
-    // Zerar sessões de foco
-    this.el.querySelector('#btn-reset-focus-time')?.addEventListener('click', e => {
-      e.stopPropagation();
-      if (confirm('Deseja zerar o tempo total focado nas estatísticas?')) {
-        EventBus.emit('ui:resetFocusSessions');
-      }
-    });
-
-    // Bind useful links buttons
-    this.el.querySelector('#btn-add-useful-link')?.addEventListener('click', () => {
-      EventBus.emit('ui:addUsefulLink');
-    });
-    this.el.querySelectorAll('.btn-edit-useful-link').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        EventBus.emit('ui:editUsefulLink', { linkId: btn.dataset.linkId });
-      });
-    });
-    this.el.querySelectorAll('.btn-delete-useful-link').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        EventBus.emit('ui:deleteUsefulLink', { linkId: btn.dataset.linkId });
       });
     });
 
@@ -224,54 +176,6 @@ class DashboardView {
               <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor; fill:none; stroke-width:2;"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
             </button>
           </div>
-        </div>
-      </div>
-    `;
-  }
-
-  _renderSchedule(subjects, schedule) {
-    const days = [
-      { key: 'mon', name: 'Seg' },
-      { key: 'tue', name: 'Ter' },
-      { key: 'wed', name: 'Qua' },
-      { key: 'thu', name: 'Qui' },
-      { key: 'fri', name: 'Sex' },
-      { key: 'sat', name: 'Sáb' },
-      { key: 'sun', name: 'Dom' }
-    ];
-
-    return `
-      <div class="dashboard-section schedule-section">
-        <h2 class="section-title">📅 Cronograma Semanal de Estudos</h2>
-        <div class="weekly-schedule-grid">
-          ${days.map(d => {
-            const daySubjectIds = schedule[d.key] || [];
-            const daySubjects = daySubjectIds
-              .map(id => subjects.find(s => s.id === id))
-              .filter(Boolean);
-
-            return `
-              <div class="schedule-day-card" data-day="${d.key}">
-                <div class="day-header">
-                  <span class="day-name">${d.name}</span>
-                  <button class="btn-icon btn-add-schedule" data-day="${d.key}" title="Agendar matéria">
-                    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  </button>
-                </div>
-                <div class="day-content">
-                  ${daySubjects.length === 0 
-                    ? '<span class="schedule-empty">Livre ✨</span>' 
-                    : daySubjects.map(s => `
-                      <div class="schedule-subject-badge" style="background: color-mix(in srgb, ${s.color} 10%, var(--bg-hover)); border-left: 3px solid ${s.color};">
-                        <span class="subj-tag">${s.emoji} ${s.name}</span>
-                        <button class="btn-remove-schedule" data-day="${d.key}" data-subject-id="${s.id}" title="Remover">&times;</button>
-                      </div>
-                    `).join('')
-                  }
-                </div>
-              </div>
-            `;
-          }).join('')}
         </div>
       </div>
     `;
@@ -359,88 +263,5 @@ class DashboardView {
   _fmtDate(ds) {
     const [y,m,d]=ds.split('-');
     return new Date(y,m-1,d).toLocaleDateString('pt-BR',{day:'numeric',month:'short'});
-  }
-  _renderCourses(courses) {
-    return `
-      <div class="dashboard-section courses-section" style="margin-top:32px; margin-bottom:32px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-          <h2 class="section-title" style="margin-bottom:0;">💻 Minhas Plataformas de Cursos</h2>
-          <button class="btn-primary btn-sm" id="btn-add-course" style="display:flex; align-items:center; gap:6px;">
-            <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Adicionar Plataforma
-          </button>
-        </div>
-        <div class="courses-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:20px;">
-          ${courses.length === 0 
-            ? `<div class="course-empty" style="grid-column: 1/-1; text-align:center; padding:40px 20px; background:var(--bg-card); border: 1px dashed var(--border); border-radius:var(--radius-md); color:var(--text-muted);">
-                 <p style="margin:0 0 8px 0; font-size:0.9rem; font-weight:600; color:var(--text);">Nenhuma plataforma cadastrada ainda.</p>
-                 <span style="font-size:0.75rem; color:var(--text-muted); line-height: 1.4; display:block; max-width:400px; margin:0 auto;">Adicione sites como Alura, Udemy, Coursera ou outros para estudar sem sair do aplicativo!</span>
-               </div>`
-            : courses.map(c => `
-              <div class="course-card" style="display:flex; flex-direction:column; justify-content:space-between; padding:20px; background:var(--bg-card); border: 1px solid var(--border); border-radius:var(--radius-md); transition: all 0.2s ease; position:relative; box-shadow: var(--shadow-sm);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-                  <span style="font-size:1.8rem; background:rgba(139, 92, 246, 0.12); padding:10px; border-radius:var(--radius-sm); line-height: 1; display: inline-flex; align-items: center; justify-content: center;">${c.emoji}</span>
-                  <button class="btn-icon btn-delete-course" data-course-id="${c.id}" style="color:var(--text-muted); padding:4px; margin:-4px -4px 0 0;" title="Excluir">
-                    <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                  </button>
-                </div>
-                <div style="margin-bottom:20px; flex:1;">
-                  <h3 style="margin:0 0 6px 0; font-size:1.05rem; font-weight:650; color:var(--text); line-height: 1.3;">${c.name}</h3>
-                  <p style="margin:0; font-size:0.75rem; color:var(--text-muted); word-break:break-all; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;" title="${c.url}">${c.url}</p>
-                </div>
-                <button class="btn-primary btn-sm btn-open-platform" data-course-id="${c.id}" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; font-weight:600; padding:10px;">
-                  <span>Estudar no App</span>
-                  <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round;"><polyline points="9 18 15 12 9 6"/></svg>
-                </button>
-              </div>
-            `).join('')
-          }
-        </div>
-      </div>
-    `;
-  }
-
-  _renderUsefulLinks(links) {
-    return `
-      <div class="dashboard-section useful-links-section" style="margin-top:32px; margin-bottom:32px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-          <h2 class="section-title" style="margin-bottom:0;">🔗 Links Úteis</h2>
-          <button class="btn-primary btn-sm" id="btn-add-useful-link" style="display:flex; align-items:center; gap:6px;">
-            <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Adicionar Link
-          </button>
-        </div>
-        <div class="useful-links-grid">
-          ${links.length === 0
-            ? `<div class="useful-links-empty">
-                 <span style="font-size:2rem; display:block; margin-bottom:10px;">🔗</span>
-                 <p style="margin:0 0 4px; font-size:0.9rem; font-weight:600; color:var(--text);">Nenhum link salvo ainda.</p>
-                 <span style="font-size:0.78rem; color:var(--text-muted);">Adicione sites, ferramentas ou recursos que você usa no dia a dia!</span>
-               </div>`
-            : links.map(l => `
-              <div class="useful-link-card">
-                <a href="${l.url}" target="_blank" rel="noopener noreferrer" class="useful-link-card-link" title="${l.url}">
-                  <div class="useful-link-emoji">${l.emoji}</div>
-                  <div class="useful-link-info">
-                    <div class="useful-link-title">${l.title}</div>
-                    ${l.description ? `<div class="useful-link-desc">${l.description}</div>` : ''}
-                    <div class="useful-link-url">${l.url.replace(/^https?:\/\//, '')}</div>
-                  </div>
-                  <svg class="useful-link-arrow" viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.4;flex-shrink:0;pointer-events:none;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                </a>
-                <div class="useful-link-actions">
-                  <button class="btn-icon btn-edit-useful-link" data-link-id="${l.id}" title="Editar link">
-                    <svg viewBox="0 0 24 24" style="pointer-events:none;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
-                  </button>
-                  <button class="btn-icon btn-delete-useful-link" data-link-id="${l.id}" title="Remover link">
-                    <svg viewBox="0 0 24 24" style="pointer-events:none;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                  </button>
-                </div>
-              </div>
-            `).join('')
-          }
-        </div>
-      </div>
-    `;
   }
 }

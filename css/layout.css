@@ -141,9 +141,16 @@ body {
   text-transform: uppercase;
 }
 
-.sidebar-subjects {
+.sidebar-scrollable {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-subjects {
+  overflow-y: visible;
   overflow-x: hidden;
   padding: 4px 12px 12px;
 }
@@ -409,6 +416,120 @@ body {
 
 /* Ocultar cronograma na sidebar colapsada */
 #app-layout.sidebar-collapsed .sidebar-schedule-section { display: none; }
+
+/* ── Seções Colapsáveis Unificadas ────────────────────────────────────────── */
+.sidebar-collapsible-section {
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sidebar-collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px 7px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+}
+.sidebar-collapsible-header:hover { background: var(--bg-hover); }
+
+.sidebar-collapsible-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.collapsible-chevron { transition: transform 0.2s; }
+.collapsible-chevron.open { transform: rotate(90deg); }
+
+.sidebar-collapsible-body {
+  padding: 2px 10px 8px;
+}
+.sidebar-collapsible-body.hidden { display: none; }
+
+.sidebar-collapsible-empty {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  padding: 6px 4px;
+  text-align: center;
+}
+
+/* Ocultar seções na sidebar colapsada */
+#app-layout.sidebar-collapsed .sidebar-collapsible-section { display: none; }
+
+/* ── Itens de Plataforma ──────────────────────────────────────────────────── */
+.sidebar-course-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.sidebar-course-item:hover { background: var(--bg-hover); }
+.sidebar-course-item:hover .sidebar-item-actions { opacity: 1; }
+
+.sidebar-course-emoji { font-size: 0.95rem; flex-shrink: 0; }
+.sidebar-course-name {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Itens de Link Útil ───────────────────────────────────────────────────── */
+.sidebar-link-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.sidebar-link-item:hover { background: var(--bg-hover); }
+.sidebar-link-item:hover .sidebar-item-actions { opacity: 1; }
+
+.sidebar-link-anchor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+}
+.sidebar-link-anchor:hover .sidebar-link-name { color: var(--accent); }
+
+.sidebar-link-emoji { font-size: 0.95rem; flex-shrink: 0; }
+.sidebar-link-name {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition);
+}
+
+/* Ações compartilhadas */
+.sidebar-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity var(--transition);
+}
+
 
 .theme-toggle {
   display: flex; align-items: center; gap: 6px;
