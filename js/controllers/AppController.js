@@ -7,10 +7,10 @@
 class AppController {
   constructor(models, views) {
     this.models = models;
-    this.views  = views;
+    this.views = views;
 
-    this._route   = { view: 'dashboard', subjectId: null, pageId: null, mapId: null };
-    this._theme   = Storage.get('theme') || 'dark';
+    this._route = { view: 'dashboard', subjectId: null, pageId: null, mapId: null };
+    this._theme = Storage.get('theme') || 'dark';
     this._currentMindMapView = null;
 
     // Sons Ambientes
@@ -45,27 +45,27 @@ class AppController {
     // Destroy mind map RAF loop before leaving
     if (this._currentMindMapView) { this._currentMindMapView.destroy(); this._currentMindMapView = null; }
 
-    this._route = { 
-      view, 
-      subjectId: opts.subjectId||null, 
-      pageId: opts.pageId||null, 
-      mapId: opts.mapId||null,
-      courseId: opts.courseId||null
+    this._route = {
+      view,
+      subjectId: opts.subjectId || null,
+      pageId: opts.pageId || null,
+      mapId: opts.mapId || null,
+      courseId: opts.courseId || null
     };
     this._render();
   }
 
   _render() {
     const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel, usefulLinksModel, topicModel } = this.models;
-    const subjects   = subjectModel.getAll();
-    const pages      = pageModel.getAll();
-    const tasks      = taskModel.getAll();
-    const calendar   = calendarModel.getAll();
-    const materials  = materialModel.getAll();
-    const mindMaps   = mindMapModel.getAll();
-    const courses    = courseModel.getAll();
+    const subjects = subjectModel.getAll();
+    const pages = pageModel.getAll();
+    const tasks = taskModel.getAll();
+    const calendar = calendarModel.getAll();
+    const materials = materialModel.getAll();
+    const mindMaps = mindMapModel.getAll();
+    const courses = courseModel.getAll();
     const flashcards = flashcardModel.getAll();
-    const quizzes    = quizModel.getAll();
+    const quizzes = quizModel.getAll();
     const usefulLinks = usefulLinksModel.getAll();
     const schedule = Storage.get('studySchedule') || { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
 
@@ -73,7 +73,7 @@ class AppController {
     this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route, schedule, courses, usefulLinks);
 
     // Show correct view
-    const allViews = ['dashboard','editor','tasks','calendar','materials','mindmap','timer','platform-browser','flashcards','quizzes','notes','integrations','discord-chat','topics'];
+    const allViews = ['dashboard', 'editor', 'tasks', 'calendar', 'materials', 'mindmap', 'timer', 'platform-browser', 'flashcards', 'quizzes', 'notes', 'integrations', 'discord-chat', 'topics'];
     allViews.forEach(v => {
       const el = document.getElementById(`view-${v}`);
       if (el) el.classList.toggle('hidden', v !== this._route.view);
@@ -87,7 +87,7 @@ class AppController {
       }
 
       case 'editor': {
-        const page    = r.pageId ? pageModel.getById(r.pageId) : null;
+        const page = r.pageId ? pageModel.getById(r.pageId) : null;
         const subject = page ? subjectModel.getById(page.subjectId) : null;
         if (page) this.views.editor.render(page, subject);
         break;
@@ -119,14 +119,14 @@ class AppController {
         break;
 
       case 'materials': {
-        const subject  = r.subjectId ? subjectModel.getById(r.subjectId) : null;
+        const subject = r.subjectId ? subjectModel.getById(r.subjectId) : null;
         const filtered = r.subjectId ? materialModel.getBySubject(r.subjectId) : materials;
         this.views.materials.render(filtered, subject, subjects);
         break;
       }
 
       case 'mindmap': {
-        const map     = r.mapId ? mindMapModel.getById(r.mapId) : null;
+        const map = r.mapId ? mindMapModel.getById(r.mapId) : null;
         const subject = map ? subjectModel.getById(map.subjectId) : null;
         if (map) {
           this.views.mindmap.render(map, subject);
@@ -272,7 +272,7 @@ class AppController {
     EventBus.on('task:cycleStatus', ({ taskId }) => {
       const t = taskModel.getById(taskId);
       if (!t) return;
-      const cycle = { todo:'doing', doing:'done', done:'todo' };
+      const cycle = { todo: 'doing', doing: 'done', done: 'todo' };
       const newStatus = cycle[t.status];
       taskModel.setStatus(taskId, newStatus);
       this._render();
@@ -360,7 +360,7 @@ class AppController {
       const ev = calendarModel.getById(eventId);
       if (ev) this._showEventModal(ev.date, ev);
     });
-    EventBus.on('calendar:updated', () => { if(this._route.view==='calendar') this._render(); });
+    EventBus.on('calendar:updated', () => { if (this._route.view === 'calendar') this._render(); });
 
     // ─ Materials ─
     EventBus.on('material:upload', async ({ file, subjectId }) => {
@@ -391,7 +391,7 @@ class AppController {
         window.open(meta.driveUrl, '_blank');
         return;
       }
-      const url  = await materialModel.getBlobURL(materialId);
+      const url = await materialModel.getBlobURL(materialId);
       if (!url) { alert('Arquivo não disponível.'); return; }
       const a = document.createElement('a');
       a.href = url; a.download = meta.name; a.click();
@@ -422,20 +422,20 @@ class AppController {
 
     // ─ Timer ─
     const updateDashTimer = () => {
-      if(this._route.view === 'dashboard') {
+      if (this._route.view === 'dashboard') {
         this.views.dashboard.updateTimer(this.models.timerModel._state());
       }
     };
 
-    EventBus.on('timer:toggle',   () => { this.models.timerModel.toggle();             this._renderTimer(); updateDashTimer(); });
-    EventBus.on('timer:reset',    () => { this.models.timerModel.reset();              this._renderTimer(); updateDashTimer(); });
-    EventBus.on('timer:skip',     () => { this.models.timerModel._complete();          this._renderTimer(); updateDashTimer(); });
-    EventBus.on('timer:setMode',  (mode) => { this.models.timerModel.setMode(mode);   this._renderTimer(); updateDashTimer(); });
-    EventBus.on('timer:tick',     () => { if(this._route.view==='timer') this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:toggle', () => { this.models.timerModel.toggle(); this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:reset', () => { this.models.timerModel.reset(); this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:skip', () => { this.models.timerModel._complete(); this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:setMode', (mode) => { this.models.timerModel.setMode(mode); this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:tick', () => { if (this._route.view === 'timer') this._renderTimer(); updateDashTimer(); });
     EventBus.on('timer:complete', ({ mode, session }) => {
-      const msg = mode==='focus' ? '✅ Sessão de foco concluída!' : '🎯 Hora de focar!';
+      const msg = mode === 'focus' ? '✅ Sessão de foco concluída!' : '🎯 Hora de focar!';
       this._toast(msg);
-      if(this._route.view==='timer') this._renderTimer();
+      if (this._route.view === 'timer') this._renderTimer();
       updateDashTimer();
 
       if (mode === 'focus' && Discord.isEnabled('pomodoro')) {
@@ -480,7 +480,7 @@ class AppController {
         document.getElementById('modal-confirm')?.addEventListener('click', () => {
           const subjectId = document.getElementById('modal-pick-schedule-subject')?.value;
           if (subjectId) {
-            const sched = Storage.get('studySchedule') || { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] };
+            const sched = Storage.get('studySchedule') || { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
             if (!sched[day].includes(subjectId)) {
               sched[day].push(subjectId);
               Storage.set('studySchedule', sched);
@@ -494,7 +494,7 @@ class AppController {
     });
 
     EventBus.on('ui:removeScheduleSubject', ({ day, subjectId }) => {
-      const sched = Storage.get('studySchedule') || { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] };
+      const sched = Storage.get('studySchedule') || { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
       sched[day] = sched[day].filter(id => id !== subjectId);
       Storage.set('studySchedule', sched);
       this._toast('Matéria removida do cronograma.');
@@ -578,7 +578,7 @@ class AppController {
               const finalPrompt = prompt || (materialId ? `Conteúdo do arquivo ${materialModel.getById(materialId)?.name}` : '');
               result = await this._fetchGeminiMindMap(finalPrompt, apiKey, fileData);
             } else {
-              const subjectTitle = materialId 
+              const subjectTitle = materialId
                 ? materialModel.getById(materialId)?.name.split('.')[0]
                 : prompt;
               result = this._generateLocalMockMap(subjectTitle);
@@ -634,8 +634,8 @@ class AppController {
         </div>
       `, () => {
         document.getElementById('modal-confirm-course')?.addEventListener('click', () => {
-          const name  = document.getElementById('modal-course-name')?.value.trim();
-          const url   = document.getElementById('modal-course-url')?.value.trim();
+          const name = document.getElementById('modal-course-name')?.value.trim();
+          const url = document.getElementById('modal-course-url')?.value.trim();
           const emoji = document.getElementById('modal-course-emoji')?.value.trim() || '💻';
 
           if (!name || !url) {
@@ -697,8 +697,8 @@ class AppController {
       `, () => {
         document.getElementById('modal-confirm-link')?.addEventListener('click', () => {
           const title = document.getElementById('modal-link-title')?.value.trim();
-          const url   = document.getElementById('modal-link-url')?.value.trim();
-          const desc  = document.getElementById('modal-link-desc')?.value.trim();
+          const url = document.getElementById('modal-link-url')?.value.trim();
+          const desc = document.getElementById('modal-link-desc')?.value.trim();
           const emoji = document.getElementById('modal-link-emoji')?.value.trim() || '🔗';
           if (!title || !url) {
             alert('Por favor, preencha o Título e a URL do link.');
@@ -745,8 +745,8 @@ class AppController {
       `, () => {
         document.getElementById('modal-confirm-edit-link')?.addEventListener('click', () => {
           const title = document.getElementById('modal-edit-link-title')?.value.trim();
-          const url   = document.getElementById('modal-edit-link-url')?.value.trim();
-          const desc  = document.getElementById('modal-edit-link-desc')?.value.trim();
+          const url = document.getElementById('modal-edit-link-url')?.value.trim();
+          const desc = document.getElementById('modal-edit-link-desc')?.value.trim();
           const emoji = document.getElementById('modal-edit-link-emoji')?.value.trim() || '🔗';
           if (!title || !url) {
             alert('Por favor, preencha o Título e a URL do link.');
@@ -941,7 +941,7 @@ class AppController {
     EventBus.on('ui:generateAIQuiz', async ({ subjectId, theme, materialId }) => {
       const { quizModel, materialModel, subjectModel } = this.models;
       const subject = subjectModel.getById(subjectId);
-      
+
       this._closeModal();
       this._toast('🪄 Gerando simulado por I.A...');
 
@@ -993,12 +993,12 @@ class AppController {
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const dateStr = new Date().toISOString().slice(0, 10);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `estuda-ai-backup-${dateStr}.json`;
         a.click();
-        
+
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         this._toast('✅ Backup exportado com sucesso!');
       } catch (e) {
@@ -1015,12 +1015,12 @@ class AppController {
           if (!data || typeof data !== 'object') {
             throw new Error('O arquivo de backup é inválido.');
           }
-          
+
           const hasData = data.localStorage || data.subjects || data.pages || data.tasks;
           if (!hasData) {
             throw new Error('Nenhum dado de estudo válido encontrado no arquivo.');
           }
-          
+
           if (confirm('Importar este backup irá substituir matérias, tarefas, anotações e todos os arquivos existentes neste navegador. Deseja continuar?')) {
             this._toast('⚡ Restaurando arquivos e dados...');
             await Storage.importFullBackup(data);
@@ -1164,7 +1164,7 @@ class AppController {
         this._toast('📄 Criando documento no Google Docs...');
         const docUrl = await GoogleCalendar.exportToGoogleDocs(page);
         this._toast('✅ Documento exportado com sucesso!');
-        
+
         if (confirm('Documento exportado com sucesso! Deseja abrir o documento criado no Google Docs agora?')) {
           window.open(docUrl, '_blank');
         }
@@ -1194,25 +1194,25 @@ class AppController {
   }
 
   _applyTheme() {
-    document.body.classList.toggle('light', this._theme==='light');
+    document.body.classList.toggle('light', this._theme === 'light');
     const moon = document.getElementById('theme-icon-moon');
-    const sun  = document.getElementById('theme-icon-sun');
-    if (moon) moon.style.display = this._theme==='dark'  ? '' : 'none';
-    if (sun)  sun.style.display  = this._theme==='light' ? '' : 'none';
+    const sun = document.getElementById('theme-icon-sun');
+    if (moon) moon.style.display = this._theme === 'dark' ? '' : 'none';
+    if (sun) sun.style.display = this._theme === 'light' ? '' : 'none';
   }
 
   // ── Modals ─────────────────────────────────────────────────────────────────
 
   _showSubjectModal() {
-    const emojis = ['📚','📐','🔬','🧬','📜','🌍','💻','🎨','🎵','⚗️','📊','🏛️'];
-    const colors = ['#8B5CF6','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899','#3B82F6','#F97316'];
+    const emojis = ['📚', '📐', '🔬', '🧬', '📜', '🌍', '💻', '🎨', '🎵', '⚗️', '📊', '🏛️'];
+    const colors = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#3B82F6', '#F97316'];
     this._openModal(`
       <h2>Nova Matéria</h2>
       <input id="modal-subject-name" class="modal-input" type="text" placeholder="Nome da matéria" maxlength="40">
       <label class="modal-label">Emoji</label>
-      <div class="emoji-grid">${emojis.map(e=>`<button class="emoji-btn" data-emoji="${e}">${e}</button>`).join('')}</div>
+      <div class="emoji-grid">${emojis.map(e => `<button class="emoji-btn" data-emoji="${e}">${e}</button>`).join('')}</div>
       <label class="modal-label">Cor</label>
-      <div class="color-grid">${colors.map(c=>`<button class="color-swatch" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
+      <div class="color-grid">${colors.map(c => `<button class="color-swatch" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
       <div class="modal-footer">
         <button class="btn-ghost" id="modal-cancel">Cancelar</button>
         <button class="btn-primary" id="modal-confirm">Criar</button>
@@ -1220,11 +1220,11 @@ class AppController {
     `, () => {
       let emoji = '📚', color = '#8B5CF6';
       document.querySelectorAll('.emoji-btn').forEach(b => b.addEventListener('click', () => {
-        document.querySelectorAll('.emoji-btn').forEach(x=>x.classList.remove('selected'));
+        document.querySelectorAll('.emoji-btn').forEach(x => x.classList.remove('selected'));
         b.classList.add('selected'); emoji = b.dataset.emoji;
       }));
       document.querySelectorAll('.color-swatch').forEach(b => b.addEventListener('click', () => {
-        document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('selected'));
+        document.querySelectorAll('.color-swatch').forEach(x => x.classList.remove('selected'));
         b.classList.add('selected'); color = b.dataset.color;
       }));
       document.getElementById('modal-confirm')?.addEventListener('click', () => {
@@ -1248,7 +1248,7 @@ class AppController {
         <div>
           <label class="modal-label">Matéria</label>
           <select id="modal-task-subject" class="select-input">
-            ${subjects.map(s=>`<option value="${s.id}" ${s.id===subjectId?'selected':''}>${s.emoji} ${s.name}</option>`).join('')}
+            ${subjects.map(s => `<option value="${s.id}" ${s.id === subjectId ? 'selected' : ''}>${s.emoji} ${s.name}</option>`).join('')}
           </select>
         </div>
         <div>
@@ -1270,13 +1270,13 @@ class AppController {
       </div>
     `, () => {
       document.getElementById('modal-confirm')?.addEventListener('click', () => {
-        const title    = document.getElementById('modal-task-title')?.value.trim();
-        const desc     = document.getElementById('modal-task-desc')?.value.trim();
-        const subjId   = document.getElementById('modal-task-subject')?.value;
+        const title = document.getElementById('modal-task-title')?.value.trim();
+        const desc = document.getElementById('modal-task-desc')?.value.trim();
+        const subjId = document.getElementById('modal-task-subject')?.value;
         const priority = document.getElementById('modal-task-priority')?.value;
-        const dueDate  = document.getElementById('modal-task-due')?.value || null;
+        const dueDate = document.getElementById('modal-task-due')?.value || null;
         if (!title || !subjId) return;
-        this.models.taskModel.create(subjId, title, { description:desc, priority, dueDate });
+        this.models.taskModel.create(subjId, title, { description: desc, priority, dueDate });
         this._closeModal();
         this._render();
       });
@@ -1286,59 +1286,59 @@ class AppController {
 
   _showEventModal(date, existing = null) {
     const subjects = this.models.subjectModel.getAll();
-    const types    = [{v:'study',l:'📖 Estudo'},{v:'review',l:'🔄 Revisão'},{v:'exam',l:'📝 Prova'},{v:'deadline',l:'⏰ Prazo'}];
+    const types = [{ v: 'study', l: '📖 Estudo' }, { v: 'review', l: '🔄 Revisão' }, { v: 'exam', l: '📝 Prova' }, { v: 'deadline', l: '⏰ Prazo' }];
     this._openModal(`
       <h2>${existing ? 'Editar Evento' : 'Novo Evento'}</h2>
-      <input id="modal-ev-title" class="modal-input" type="text" placeholder="Título do evento" value="${existing?.title||''}">
+      <input id="modal-ev-title" class="modal-input" type="text" placeholder="Título do evento" value="${existing?.title || ''}">
       <div class="modal-row">
         <div>
           <label class="modal-label">Data</label>
-          <input id="modal-ev-date" class="modal-input" type="date" value="${date||''}">
+          <input id="modal-ev-date" class="modal-input" type="date" value="${date || ''}">
         </div>
         <div>
           <label class="modal-label">Tipo</label>
           <select id="modal-ev-type" class="select-input">
-            ${types.map(t=>`<option value="${t.v}" ${existing?.type===t.v?'selected':''}>${t.l}</option>`).join('')}
+            ${types.map(t => `<option value="${t.v}" ${existing?.type === t.v ? 'selected' : ''}>${t.l}</option>`).join('')}
           </select>
         </div>
         <div>
           <label class="modal-label">Matéria</label>
           <select id="modal-ev-subject" class="select-input">
             <option value="">— Nenhuma —</option>
-            ${subjects.map(s=>`<option value="${s.id}" ${existing?.subjectId===s.id?'selected':''}>${s.emoji} ${s.name}</option>`).join('')}
+            ${subjects.map(s => `<option value="${s.id}" ${existing?.subjectId === s.id ? 'selected' : ''}>${s.emoji} ${s.name}</option>`).join('')}
           </select>
         </div>
       </div>
-      <input id="modal-ev-duration" class="modal-input" type="number" placeholder="Duração (minutos)" value="${existing?.duration||60}" min="0">
-      <textarea id="modal-ev-notes" class="modal-textarea" placeholder="Notas" rows="2">${existing?.notes||''}</textarea>
+      <input id="modal-ev-duration" class="modal-input" type="number" placeholder="Duração (minutos)" value="${existing?.duration || 60}" min="0">
+      <textarea id="modal-ev-notes" class="modal-textarea" placeholder="Notas" rows="2">${existing?.notes || ''}</textarea>
       <div class="modal-footer">
         ${existing ? `<button class="btn-danger" id="modal-delete">Excluir</button>` : ''}
         <button class="btn-ghost" id="modal-cancel">Cancelar</button>
-        <button class="btn-primary" id="modal-confirm">${existing?'Salvar':'Criar'}</button>
+        <button class="btn-primary" id="modal-confirm">${existing ? 'Salvar' : 'Criar'}</button>
       </div>
     `, () => {
       document.getElementById('modal-confirm')?.addEventListener('click', () => {
-        const title     = document.getElementById('modal-ev-title')?.value.trim();
-        const evDate    = document.getElementById('modal-ev-date')?.value;
-        const type      = document.getElementById('modal-ev-type')?.value;
+        const title = document.getElementById('modal-ev-title')?.value.trim();
+        const evDate = document.getElementById('modal-ev-date')?.value;
+        const type = document.getElementById('modal-ev-type')?.value;
         const subjectId = document.getElementById('modal-ev-subject')?.value || null;
-        const duration  = parseInt(document.getElementById('modal-ev-duration')?.value)||60;
-        const notes     = document.getElementById('modal-ev-notes')?.value;
+        const duration = parseInt(document.getElementById('modal-ev-duration')?.value) || 60;
+        const notes = document.getElementById('modal-ev-notes')?.value;
         if (!title || !evDate) return;
         const subject = subjectId ? this.models.subjectModel.getById(subjectId) : null;
-        const typeColors = { study:'#8B5CF6', review:'#06B6D4', exam:'#EF4444', deadline:'#F59E0B' };
+        const typeColors = { study: '#8B5CF6', review: '#06B6D4', exam: '#EF4444', deadline: '#F59E0B' };
         const color = subject?.color || typeColors[type] || '#8B5CF6';
         let savedEvent;
         if (existing) {
-          savedEvent = this.models.calendarModel.update(existing.id, { title, date:evDate, type, subjectId, duration, notes, color });
+          savedEvent = this.models.calendarModel.update(existing.id, { title, date: evDate, type, subjectId, duration, notes, color });
         } else {
-          savedEvent = this.models.calendarModel.create({ title, date:evDate, type, subjectId, duration, notes, color });
+          savedEvent = this.models.calendarModel.create({ title, date: evDate, type, subjectId, duration, notes, color });
         }
         if (savedEvent) {
           this._syncLocalEventToGoogle(savedEvent);
         }
         this._closeModal();
-        if (this._route.view==='calendar') this._render();
+        if (this._route.view === 'calendar') this._render();
       });
       document.getElementById('modal-delete')?.addEventListener('click', () => {
         if (existing && confirm('Excluir evento?')) {
@@ -1347,7 +1347,7 @@ class AppController {
           }
           this.models.calendarModel.delete(existing.id);
           this._closeModal();
-          if (this._route.view==='calendar') this._render();
+          if (this._route.view === 'calendar') this._render();
         }
       });
       document.getElementById('modal-ev-title')?.focus();
@@ -1407,7 +1407,7 @@ class AppController {
       <h2>Selecionar Matéria</h2>
       <p>Para qual matéria deseja enviar ${files.length} arquivo(s)?</p>
       <select id="modal-pick-subject" class="select-input">
-        ${subjects.map(s=>`<option value="${s.id}">${s.emoji} ${s.name}</option>`).join('')}
+        ${subjects.map(s => `<option value="${s.id}">${s.emoji} ${s.name}</option>`).join('')}
       </select>
       <div class="modal-footer">
         <button class="btn-ghost" id="modal-cancel">Cancelar</button>
@@ -1416,7 +1416,7 @@ class AppController {
     `, () => {
       document.getElementById('modal-confirm')?.addEventListener('click', () => {
         const subjectId = document.getElementById('modal-pick-subject')?.value;
-        files.forEach(f => EventBus.emit('material:upload', { file:f, subjectId }));
+        files.forEach(f => EventBus.emit('material:upload', { file: f, subjectId }));
         this._closeModal();
       });
     });
@@ -1447,7 +1447,7 @@ class AppController {
 
   _openModal(html, onMount, extraClass = '') {
     const overlay = document.getElementById('modal-overlay');
-    const box     = document.getElementById('modal-box');
+    const box = document.getElementById('modal-box');
     box.className = `modal-box ${extraClass}`;
     box.innerHTML = html;
     overlay.classList.remove('hidden');
@@ -1513,7 +1513,7 @@ class AppController {
 
   async _fetchGeminiMindMap(prompt, apiKey, fileData = null) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    
+
     const parts = [];
     if (fileData) {
       parts.push({
@@ -1592,12 +1592,12 @@ Mantenha o mapa com 6 a 12 nós de estudo relevantes. Organize as coordenadas x 
   }
 
   _generateLocalMockMap(prompt) {
-    const colors = ['#8B5CF6','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899','#3B82F6'];
+    const colors = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#3B82F6'];
     const nodes = [
       { id: '1', text: prompt, color: colors[0], x: 0, y: 0, width: 140, height: 46 }
     ];
     const edges = [];
-    
+
     const subtopics = [
       { text: 'Definição & Conceito', x: -220, y: -120, color: colors[1], sub: ['Fundamentos', 'Significado'] },
       { text: 'Aplicações Práticas', x: 220, y: -120, color: colors[2], sub: ['Exemplos Reais', 'Casos de Uso'] },
@@ -1626,7 +1626,7 @@ Mantenha o mapa com 6 a 12 nós de estudo relevantes. Organize as coordenadas x 
 
   async _fetchGeminiQuiz(theme, apiKey, materialFile) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    
+
     let prompt = `Você é um gerador de provas e quizzes de alto nível cognitivo.
 Gere um quiz com exatamente 5 perguntas objetivas de múltipla escolha sobre o tema: "${theme}".
 Retorne estritamente um objeto JSON com o formato:
@@ -1735,7 +1735,7 @@ Forneça explicações detalhadas e didáticas para cada gabarito.`;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       this._audioChunks = [];
       this._mediaRecorder = new MediaRecorder(stream);
-      
+
       this._mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) this._audioChunks.push(e.data);
       };
@@ -1825,7 +1825,7 @@ Aqui está um resumo executivo da gravação efetuada:
 
   async _fetchGeminiVoiceTranscription(base64, apiKey) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    
+
     const prompt = `Você é um anotador e assistente de estudos profissional.
 Ouça com extrema atenção a esta gravação de áudio de uma aula ou explicação gravada pelo estudante.
 Transcreva fielmente os pontos mais importantes e monte um resumo executivo ultra-estruturado em formato Markdown.
@@ -1860,7 +1860,7 @@ Retorne estritamente o texto formatado em Markdown, sem nenhuma introdução ou 
   async _renderCalendarView() {
     const calendar = this.models.calendarModel.getAll();
     const subjects = this.models.subjectModel.getAll();
-    
+
     // Renderiza inicialmente com o que temos carregado
     this.views.calendar.render(calendar, subjects, this._gcalEvents || []);
 
@@ -1879,12 +1879,12 @@ Retorne estritamente o texto formatado em Markdown, sem nenhuma introdução ou 
     try {
       const year = this.views.calendar._year;
       const month = this.views.calendar._month;
-      
+
       const timeMin = new Date(year, month - 1, 1).toISOString();
       const timeMax = new Date(year, month, 0, 23, 59, 59).toISOString();
-      
+
       const gEvents = await GoogleCalendar.fetchEvents(timeMin, timeMax);
-      
+
       this._gcalEvents = gEvents.map(e => {
         let dateStr = '';
         if (e.start?.date) {
@@ -1981,7 +1981,7 @@ Retorne estritamente o texto formatado em Markdown, sem nenhuma introdução ou 
       <div style="display:flex; gap:10px; margin-bottom:12px;">
         <input type="text" id="gdrive-search-input" class="modal-input" placeholder="Buscar arquivos no Google Drive..." style="margin-bottom:0; flex-grow:1;">
         <select id="gdrive-subject-select" class="select-input" style="width:180px;">
-          ${subjects.map(s => `<option value="${s.id}" ${s.id===targetSubjectId?'selected':''}>${s.emoji} ${s.name}</option>`).join('')}
+          ${subjects.map(s => `<option value="${s.id}" ${s.id === targetSubjectId ? 'selected' : ''}>${s.emoji} ${s.name}</option>`).join('')}
         </select>
       </div>
       <div id="gdrive-files-container" style="max-height:350px; min-height:120px; overflow-y:auto; border:1px solid rgba(255,255,255,0.08); border-radius:8px; background:rgba(0,0,0,0.15);">
@@ -2002,9 +2002,9 @@ Retorne estritamente o texto formatado em Markdown, sem nenhuma introdução ou 
         try {
           loadingEl.style.display = 'block';
           listEl.innerHTML = '';
-          
+
           const files = await this._fetchDriveFiles(query);
-          
+
           loadingEl.style.display = 'none';
           if (files.length === 0) {
             listEl.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted);">Nenhum arquivo encontrado.</div>`;
@@ -2064,7 +2064,7 @@ Retorne estritamente o texto formatado em Markdown, sem nenhuma introdução ou 
       pageSize: '40',
       fields: 'nextPageToken,files(id,name,mimeType,size,webViewLink)'
     });
-    
+
     let qStr = "trashed = false";
     if (query.trim()) {
       const escQuery = query.replace(/'/g, "\\'");
