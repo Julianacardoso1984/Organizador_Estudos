@@ -501,7 +501,7 @@ class AppController {
       this._render();
     });
 
-    EventBus.on('ui:generateAIMindMap', ({ mapId }) => {
+    EventBus.on('ui:generateAIMindMap', ({ mapId, preselectMaterialId }) => {
       const { subjectModel, mindMapModel, materialModel } = this.models;
       const map = mindMapModel.getById(mapId);
       const subjectId = map?.subjectId;
@@ -515,7 +515,7 @@ class AppController {
             <label class="modal-label">📚 Basear no material de estudo (Opcional)</label>
             <select id="modal-ai-material" class="select-input" style="width:100%;">
               <option value="">Nenhum (usar Assunto/Tema digitado acima)</option>
-              ${materials.map(m => `<option value="${m.id}">${m.name} (${m.type.toUpperCase()})</option>`).join('')}
+              ${materials.map(m => `<option value="${m.id}" ${m.id === preselectMaterialId ? 'selected' : ''}>${m.name} (${m.type.toUpperCase()})</option>`).join('')}
             </select>
             <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height: 1.4;">
               A I.A irá analisar o conteúdo do arquivo selecionado (suporta PDF, imagens e textos) e criará o mapa com base no material!
@@ -529,7 +529,7 @@ class AppController {
         <div style="display:flex; flex-direction:column; gap:16px; margin: 16px 0;">
           <div>
             <label class="modal-label">Assunto / Tema do Mapa</label>
-            <input id="modal-ai-prompt" class="modal-input" type="text" placeholder="Ex: Fotossíntese, Revolução Francesa, Programação Funcional..." maxlength="100" style="width:100%;">
+            <input id="modal-ai-prompt" class="modal-input" type="text" placeholder="Ex: Fotossíntese, Revolução Francesa, Programação Funcional..." maxlength="100" style="width:100%;" value="${preselectMaterialId ? map.name : ''}">
           </div>
           ${materialsOption}
           <div>
@@ -597,6 +597,19 @@ class AppController {
         });
         document.getElementById('modal-ai-prompt')?.focus();
       });
+    });
+
+    EventBus.on('material:generateMindMap', ({ materialId }) => {
+      const { mindMapModel, materialModel } = this.models;
+      const material = materialModel.getById(materialId);
+      if (!material) return;
+      
+      const name = material.name.replace(/\.[^/.]+$/, "");
+      const map = mindMapModel.create(material.subjectId, name, 'mind');
+      mindMapModel.linkMaterial(map.id, materialId);
+      
+      this.navigate('mindmap', { mapId: map.id, subjectId: material.subjectId });
+      EventBus.emit('ui:generateAIMindMap', { mapId: map.id, preselectMaterialId: materialId });
     });
 
     EventBus.on('ui:deleteMindMap', ({ mapId }) => {
