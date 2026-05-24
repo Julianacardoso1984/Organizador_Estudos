@@ -73,9 +73,6 @@ class MaterialView {
           <button class="btn-icon btn-preview" data-material-id="${m.id}" title="Visualizar">
             <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
-          <button class="btn-icon btn-ai-mindmap" data-material-id="${m.id}" title="Gerar Mapa Mental com IA" style="color: var(--accent);">
-            <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-          </button>
           <button class="btn-icon btn-download" data-material-id="${m.id}" title="Baixar">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
@@ -129,11 +126,6 @@ class MaterialView {
       btn.addEventListener('click', () => {
         if(confirm('Excluir este material?')) EventBus.emit('material:delete', {materialId: btn.dataset.materialId});
       });
-    });
-
-    // AI Mind Map
-    this.el.querySelectorAll('.btn-ai-mindmap').forEach(btn => {
-      btn.addEventListener('click', () => EventBus.emit('material:generateMindMap', { materialId: btn.dataset.materialId }));
     });
   }
 
