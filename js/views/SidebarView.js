@@ -11,7 +11,6 @@ class SidebarView {
     this._scheduleExpanded = true;
     this._coursesExpanded = true;
     this._linksExpanded = true;
-    this._trayOpen = false;
   }
 
   render(subjects, pages, tasks, mindmaps, materials, activeRoute, schedule = {}, courses = [], usefulLinks = []) {
@@ -76,27 +75,6 @@ class SidebarView {
       `;
     }
 
-    let trayHtml = '';
-    if (this._trayOpen) {
-      trayHtml = `
-        <div id="modal-overlay" style="z-index: 9999;">
-          <div class="modal-box" style="width: 400px; max-width: 90vw;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-              <h2 style="margin: 0;">Recursos Gerais</h2>
-              <button class="btn-icon" id="btn-close-tray" title="Fechar">
-                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-              ${this._renderScheduleSection(subjects, schedule)}
-              ${this._renderCoursesSection(courses)}
-              ${this._renderLinksSection(usefulLinks)}
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
     this.el.innerHTML = `
       <div class="global-nav-container">
         <div class="sidebar-header">
@@ -112,10 +90,10 @@ class SidebarView {
             Painel
           </a>
           
-          <button class="nav-item ${this._trayOpen ? 'active' : ''}" id="btn-toggle-tray" title="Recursos Gerais">
+          <a href="#" class="nav-item ${activeRoute.view === 'resources' ? 'active' : ''}" data-nav="resources" title="Recursos Gerais">
             <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
             Recursos
-          </button>
+          </a>
 
           <a href="#" class="nav-item ${activeRoute.view === 'calendar' ? 'active' : ''}" data-nav="calendar" title="Calendário">
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -149,150 +127,12 @@ class SidebarView {
         </div>
       </div>
       ${courseNavHtml}
-      ${trayHtml}
     `;
 
     this._bindEvents();
   }
 
-  // ── Seção Cronograma ─────────────────────────────────────────────────────
-  _renderScheduleSection(subjects, schedule) {
-    const days = [
-      { key: 'mon', name: 'Seg' },
-      { key: 'tue', name: 'Ter' },
-      { key: 'wed', name: 'Qua' },
-      { key: 'thu', name: 'Qui' },
-      { key: 'fri', name: 'Sex' },
-      { key: 'sat', name: 'Sáb' },
-      { key: 'sun', name: 'Dom' },
-    ];
-    const todayKey = ['sun','mon','tue','wed','thu','fri','sat'][new Date().getDay()];
 
-    const rows = days.map(d => {
-      const ids = schedule[d.key] || [];
-      const daySubjects = ids.map(id => subjects.find(s => s.id === id)).filter(Boolean);
-      const isToday = d.key === todayKey;
-      return `
-        <div class="sched-day-row ${isToday ? 'sched-today' : ''}">
-          <div class="sched-day-label">
-            <span class="sched-day-name ${isToday ? 'sched-today-label' : ''}">${d.name}</span>
-            ${isToday ? '<span class="sched-today-dot"></span>' : ''}
-          </div>
-          <div class="sched-day-subjects">
-            ${daySubjects.length === 0
-              ? '<span class="sched-empty-day">—</span>'
-              : daySubjects.map(s => `
-                <div class="sched-subject-pill" style="border-left-color:${s.color}; background: color-mix(in srgb, ${s.color} 12%, var(--bg-3));" title="${this._esc(s.name)}">
-                  <span>${s.emoji}</span>
-                  <span class="sched-pill-name">${this._esc(s.name)}</span>
-                  <button class="sched-remove-btn btn-remove-schedule" data-day="${d.key}" data-subject-id="${s.id}" title="Remover">×</button>
-                </div>
-              `).join('')}
-            <button class="sched-add-btn btn-add-schedule" data-day="${d.key}" title="Adicionar matéria no ${d.name}">
-              <svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="sidebar-collapsible-section">
-        <div class="sidebar-collapsible-header" data-section="schedule">
-          <span class="sidebar-collapsible-title">
-            <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            CRONOGRAMA
-          </span>
-          <svg class="collapsible-chevron ${this._scheduleExpanded ? 'open' : ''}" viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="sidebar-collapsible-body ${this._scheduleExpanded ? '' : 'hidden'}" id="sidebar-body-schedule">
-          ${rows}
-        </div>
-      </div>
-    `;
-  }
-
-  // ── Seção Plataformas de Cursos ───────────────────────────────────────────
-  _renderCoursesSection(courses) {
-    const items = courses.length === 0
-      ? `<div class="sidebar-collapsible-empty">Nenhuma plataforma ainda.</div>`
-      : courses.map(c => `
-        <div class="sidebar-course-item">
-          <span class="sidebar-course-emoji">${c.emoji}</span>
-          <span class="sidebar-course-name" title="${this._esc(c.name)}">${this._esc(c.name)}</span>
-          <div class="sidebar-item-actions">
-            <button class="btn-icon sidebar-btn-open-platform" data-course-id="${c.id}" title="Abrir ${this._esc(c.name)}">
-              <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <button class="btn-icon sidebar-btn-delete-course" data-course-id="${c.id}" title="Excluir">
-              <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-            </button>
-          </div>
-        </div>
-      `).join('');
-
-    return `
-      <div class="sidebar-collapsible-section">
-        <div class="sidebar-collapsible-header" data-section="courses">
-          <span class="sidebar-collapsible-title">
-            <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.57 3.37 2 2 0 0 1 3.55 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.81a16 16 0 0 0 6.29 6.29l1.27-.45a2 2 0 0 1 2.11.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            PLATAFORMAS
-          </span>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <button class="sidebar-btn-add-course btn-icon" title="Adicionar plataforma" style="width:16px;height:16px;opacity:0.6;" id="sidebar-add-course-btn">
-              <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-            <svg class="collapsible-chevron ${this._coursesExpanded ? 'open' : ''}" viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>
-        </div>
-        <div class="sidebar-collapsible-body ${this._coursesExpanded ? '' : 'hidden'}" id="sidebar-body-courses">
-          ${items}
-        </div>
-      </div>
-    `;
-  }
-
-  // ── Seção Links Úteis ─────────────────────────────────────────────────────
-  _renderLinksSection(links) {
-    const items = links.length === 0
-      ? `<div class="sidebar-collapsible-empty">Nenhum link ainda.</div>`
-      : links.map(l => `
-        <div class="sidebar-link-item">
-          <a href="${l.url}" target="_blank" rel="noopener noreferrer" class="sidebar-link-anchor" title="${this._esc(l.title)}\n${l.url}">
-            <span class="sidebar-link-emoji">${l.emoji}</span>
-            <span class="sidebar-link-name">${this._esc(l.title)}</span>
-          </a>
-          <div class="sidebar-item-actions">
-            <button class="btn-icon sidebar-btn-edit-link" data-link-id="${l.id}" title="Editar">
-              <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
-            </button>
-            <button class="btn-icon sidebar-btn-delete-link" data-link-id="${l.id}" title="Remover">
-              <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-            </button>
-          </div>
-        </div>
-      `).join('');
-
-    return `
-      <div class="sidebar-collapsible-section">
-        <div class="sidebar-collapsible-header" data-section="links">
-          <span class="sidebar-collapsible-title">
-            <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            LINKS ÚTEIS
-          </span>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <button class="sidebar-btn-add-link btn-icon" title="Adicionar link" style="width:16px;height:16px;opacity:0.6;" id="sidebar-add-link-btn">
-              <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-            <svg class="collapsible-chevron ${this._linksExpanded ? 'open' : ''}" viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>
-        </div>
-        <div class="sidebar-collapsible-body ${this._linksExpanded ? '' : 'hidden'}" id="sidebar-body-links">
-          ${items}
-        </div>
-      </div>
-    `;
-  }
 
   // ── Matéria individual ────────────────────────────────────────────────────
   _renderSubject(s, pages, tasks, mindmaps, materials, activeRoute) {
@@ -370,16 +210,6 @@ class SidebarView {
   }
 
   _bindEvents() {
-    // Toggle Tray
-    document.getElementById('btn-toggle-tray')?.addEventListener('click', () => {
-      this._trayOpen = !this._trayOpen;
-      EventBus.emit('ui:renderSidebar'); // We need to re-render to show/hide the tray
-    });
-    document.getElementById('btn-close-tray')?.addEventListener('click', () => {
-      this._trayOpen = false;
-      EventBus.emit('ui:renderSidebar');
-    });
-
     // Collapse sidebar
     document.getElementById('btn-collapse-sidebar')?.addEventListener('click', () => {
       this.collapsed = !this.collapsed;
@@ -416,78 +246,6 @@ class SidebarView {
     // Search
     document.getElementById('sidebar-search')?.addEventListener('input', (e) => {
       EventBus.emit('ui:search', e.target.value);
-    });
-
-    // ── Collapsible sections toggle ──
-    this.el.querySelectorAll('.sidebar-collapsible-header').forEach(header => {
-      header.addEventListener('click', (e) => {
-        // Ignore clicks on action buttons inside the header
-        if (e.target.closest('button') && !e.target.closest('.collapsible-chevron')) return;
-        const section = header.dataset.section;
-        if (section === 'schedule') {
-          this._scheduleExpanded = !this._scheduleExpanded;
-          document.getElementById('sidebar-body-schedule')?.classList.toggle('hidden', !this._scheduleExpanded);
-          header.querySelector('.collapsible-chevron')?.classList.toggle('open', this._scheduleExpanded);
-        } else if (section === 'courses') {
-          this._coursesExpanded = !this._coursesExpanded;
-          document.getElementById('sidebar-body-courses')?.classList.toggle('hidden', !this._coursesExpanded);
-          header.querySelector('.collapsible-chevron')?.classList.toggle('open', this._coursesExpanded);
-        } else if (section === 'links') {
-          this._linksExpanded = !this._linksExpanded;
-          document.getElementById('sidebar-body-links')?.classList.toggle('hidden', !this._linksExpanded);
-          header.querySelector('.collapsible-chevron')?.classList.toggle('open', this._linksExpanded);
-        }
-      });
-    });
-
-    // ── Cronograma ──
-    this.el.querySelectorAll('.btn-add-schedule').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        EventBus.emit('ui:addScheduleSubject', { day: btn.dataset.day });
-      });
-    });
-    this.el.querySelectorAll('.btn-remove-schedule').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        EventBus.emit('ui:removeScheduleSubject', { day: btn.dataset.day, subjectId: btn.dataset.subjectId });
-      });
-    });
-
-    // ── Plataformas ──
-    document.getElementById('sidebar-add-course-btn')?.addEventListener('click', e => {
-      e.stopPropagation();
-      EventBus.emit('ui:addCoursePlatform');
-    });
-    this.el.querySelectorAll('.sidebar-btn-open-platform').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        EventBus.emit('ui:openCoursePlatform', { courseId: btn.dataset.courseId });
-      });
-    });
-    this.el.querySelectorAll('.sidebar-btn-delete-course').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        EventBus.emit('ui:deleteCoursePlatform', { courseId: btn.dataset.courseId });
-      });
-    });
-
-    // ── Links Úteis ──
-    document.getElementById('sidebar-add-link-btn')?.addEventListener('click', e => {
-      e.stopPropagation();
-      EventBus.emit('ui:addUsefulLink');
-    });
-    this.el.querySelectorAll('.sidebar-btn-edit-link').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        EventBus.emit('ui:editUsefulLink', { linkId: btn.dataset.linkId });
-      });
-    });
-    this.el.querySelectorAll('.sidebar-btn-delete-link').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        EventBus.emit('ui:deleteUsefulLink', { linkId: btn.dataset.linkId });
-      });
     });
 
     // ── Matérias ──

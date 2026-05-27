@@ -73,7 +73,7 @@ class AppController {
     this.views.sidebar.render(subjects, pages, tasks, mindMaps, materials, this._route, schedule, courses, usefulLinks);
 
     // Show correct view
-    const allViews = ['dashboard', 'editor', 'tasks', 'calendar', 'materials', 'mindmap', 'timer', 'platform-browser', 'flashcards', 'quizzes', 'notes', 'integrations', 'discord-chat', 'topics'];
+    const allViews = ['dashboard', 'editor', 'tasks', 'calendar', 'materials', 'mindmap', 'timer', 'platform-browser', 'flashcards', 'quizzes', 'notes', 'integrations', 'discord-chat', 'topics', 'resources'];
     allViews.forEach(v => {
       const el = document.getElementById(`view-${v}`);
       if (el) el.classList.toggle('hidden', v !== this._route.view);
@@ -138,6 +138,11 @@ class AppController {
       case 'timer':
         this._renderTimer();
         break;
+
+      case 'resources': {
+        this.views.resources.render(subjects, schedule, courses, usefulLinks);
+        break;
+      }
 
       case 'platform-browser': {
         // We get platform parameters from navigate (saved in route)

@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const notesView     = new NotesView();
   const editorView    = new EditorView();
   const dashboardView = new DashboardView();
+  const resourcesView = new ResourcesView();
   const tasksView     = new TaskView();
   const timerView     = new TimerView();
   const calendarView  = new CalendarView();
@@ -56,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── Controller ────────────────────────────────────────────────────────────
   const controller = new AppController(
     { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, courseModel, flashcardModel, quizModel, usefulLinksModel, topicModel },
-    { sidebar: sidebarView, notes: notesView, editor: editorView, dashboard: dashboardView,
+    { sidebar: sidebarView, notes: notesView, editor: editorView, dashboard: dashboardView, resources: resourcesView,
       tasks: tasksView, timer: timerView, calendar: calendarView,
       materials: materialsView, mindmap: mindmapView, platformBrowser: platformBrowserView,
       flashcard: flashcardView, quiz: quizView, integrations: integrationsView, discordChat: discordChatView, topics: topicView }
