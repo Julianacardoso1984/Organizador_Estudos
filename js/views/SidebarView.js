@@ -79,17 +79,19 @@ class SidebarView {
     let trayHtml = '';
     if (this._trayOpen) {
       trayHtml = `
-        <div class="canvas-tray-container" id="resources-tray">
-          <div class="tray-header">
-            <h3>Recursos Gerais</h3>
-            <button class="btn-icon" id="btn-close-tray" title="Fechar">
-              <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <div class="tray-body">
-            ${this._renderScheduleSection(subjects, schedule)}
-            ${this._renderCoursesSection(courses)}
-            ${this._renderLinksSection(usefulLinks)}
+        <div id="modal-overlay" style="z-index: 9999;">
+          <div class="modal-box" style="width: 400px; max-width: 90vw;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2 style="margin: 0;">Recursos Gerais</h2>
+              <button class="btn-icon" id="btn-close-tray" title="Fechar">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              ${this._renderScheduleSection(subjects, schedule)}
+              ${this._renderCoursesSection(courses)}
+              ${this._renderLinksSection(usefulLinks)}
+            </div>
           </div>
         </div>
       `;
