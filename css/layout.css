@@ -14,7 +14,7 @@ body {
 /* ── App Layout ───────────────────────────────────────────────────────────── */
 #app-layout {
   display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-columns: max-content 1fr;
   grid-template-rows: 1fr;
   height: 100vh;
   overflow: hidden;
@@ -32,11 +32,81 @@ body {
   -webkit-backdrop-filter: blur(12px);
   border-right: 1px solid var(--border);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   overflow: hidden;
   transition: width var(--transition);
   position: relative;
   z-index: 10;
+}
+
+.global-nav-container {
+  width: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.course-nav-container {
+  width: 220px;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from { margin-left: -220px; opacity: 0; }
+  to { margin-left: 0; opacity: 1; }
+}
+
+.course-nav-header {
+  padding: 24px 16px 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.course-nav-list {
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.course-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.87rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.course-nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.course-nav-item.active {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.course-nav-item svg {
+  width: 18px; height: 18px;
+  fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
 
 .sidebar-header {

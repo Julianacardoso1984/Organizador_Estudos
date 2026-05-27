@@ -24,49 +24,95 @@ class SidebarView {
     this._courses     = courses;
     this._usefulLinks = usefulLinks;
 
+    const activeSubject = activeRoute.subjectId ? subjects.find(s => s.id === activeRoute.subjectId) : null;
+    let courseNavHtml = '';
+
+    if (activeSubject) {
+      courseNavHtml = `
+        <div class="course-nav-container">
+          <div class="course-nav-header" style="color: ${activeSubject.color || 'var(--text)'};">
+            ${activeSubject.emoji} ${activeSubject.name}
+          </div>
+          <nav class="course-nav-list">
+            <a href="#" class="course-nav-item ${activeRoute.view === 'notes' ? 'active' : ''}" data-nav="notes" data-subject-id="${activeSubject.id}">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              Anotações
+            </a>
+            <a href="#" class="course-nav-item ${activeRoute.view === 'tasks' ? 'active' : ''}" data-nav="tasks" data-subject-id="${activeSubject.id}">
+              <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              Tarefas
+            </a>
+            <a href="#" class="course-nav-item ${activeRoute.view === 'topics' ? 'active' : ''}" data-nav="topics" data-subject-id="${activeSubject.id}">
+              <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              Assuntos
+            </a>
+            <a href="#" class="course-nav-item ${activeRoute.view === 'materials' ? 'active' : ''}" data-nav="materials" data-subject-id="${activeSubject.id}">
+              <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              Materiais
+            </a>
+            <a href="#" class="course-nav-item ${activeRoute.view === 'flashcards' ? 'active' : ''}" data-nav="flashcards" data-subject-id="${activeSubject.id}">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              Flashcards
+            </a>
+            <a href="#" class="course-nav-item ${activeRoute.view === 'quizzes' ? 'active' : ''}" data-nav="quizzes" data-subject-id="${activeSubject.id}">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Simulados
+            </a>
+            <a href="#" class="course-nav-item ${activeRoute.view === 'mindmaps' ? 'active' : ''}" data-nav="mindmaps" data-subject-id="${activeSubject.id}">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><line x1="3" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="21"/></svg>
+              Mapas Mentais
+            </a>
+          </nav>
+        </div>
+      `;
+    }
+
     this.el.innerHTML = `
-      <div class="sidebar-header">
-        <div class="app-logo">
-          <span class="logo-icon">🎓</span>
-          <span class="logo-text">EstudaAí</span>
+      <div class="global-nav-container">
+        <div class="sidebar-header">
+          <div class="app-logo">
+            <span class="logo-icon">🎓</span>
+            <span class="logo-text">EstudaAí</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-item ${activeRoute.view === 'dashboard' ? 'active' : ''}" data-nav="dashboard" title="Dashboard">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Painel
+          </a>
+          <a href="#" class="nav-item ${activeRoute.view === 'calendar' ? 'active' : ''}" data-nav="calendar" title="Calendário">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Agenda
+          </a>
+          <a href="#" class="nav-item ${activeRoute.view === 'timer' ? 'active' : ''}" data-nav="timer" title="Pomodoro">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Timer
+          </a>
+          <a href="#" class="nav-item ${activeRoute.view === 'discord-chat' ? 'active' : ''}" data-nav="discord-chat" title="Chat Discord">
+            <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Chat
+          </a>
+          <a href="#" class="nav-item ${activeRoute.view === 'integrations' ? 'active' : ''}" data-nav="integrations" title="Integrações">
+            <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Integrar
+          </a>
+          <a href="https://notebooklm.google.com" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" id="btn-notebooklm" title="Abrir NotebookLM">
+            <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M12 6l1.5 3 3 .5-2 2 .5 3L12 13l-3 1.5.5-3-2-2 3-.5z"/></svg>
+            IA
+          </a>
+        </nav>
+
+        <div style="flex:1;"></div>
+
+        <div class="sidebar-footer">
+          <button class="theme-toggle" id="btn-theme" title="Alternar tema">
+            <svg id="theme-icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+            <svg id="theme-icon-sun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+          </button>
         </div>
       </div>
-
-      <nav class="sidebar-nav">
-        <a href="#" class="nav-item ${activeRoute.view === 'dashboard' ? 'active' : ''}" data-nav="dashboard" title="Dashboard">
-          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Painel
-        </a>
-        <a href="#" class="nav-item ${activeRoute.view === 'calendar' ? 'active' : ''}" data-nav="calendar" title="Calendário">
-          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Agenda
-        </a>
-        <a href="#" class="nav-item ${activeRoute.view === 'timer' ? 'active' : ''}" data-nav="timer" title="Pomodoro">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Timer
-        </a>
-        <a href="#" class="nav-item ${activeRoute.view === 'discord-chat' ? 'active' : ''}" data-nav="discord-chat" title="Chat Discord">
-          <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Chat
-        </a>
-        <a href="#" class="nav-item ${activeRoute.view === 'integrations' ? 'active' : ''}" data-nav="integrations" title="Integrações">
-          <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          Integrar
-        </a>
-        <a href="https://notebooklm.google.com" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" id="btn-notebooklm" title="Abrir NotebookLM">
-          <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M12 6l1.5 3 3 .5-2 2 .5 3L12 13l-3 1.5.5-3-2-2 3-.5z"/></svg>
-          IA
-        </a>
-      </nav>
-
-      <div style="flex:1;"></div>
-
-      <div class="sidebar-footer">
-        <button class="theme-toggle" id="btn-theme" title="Alternar tema">
-          <svg id="theme-icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
-          <svg id="theme-icon-sun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
-        </button>
-      </div>
+      ${courseNavHtml}
     `;
 
     this._bindEvents();
