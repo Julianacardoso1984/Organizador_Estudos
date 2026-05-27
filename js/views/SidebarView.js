@@ -30,79 +30,41 @@ class SidebarView {
           <span class="logo-icon">🎓</span>
           <span class="logo-text">EstudaAí</span>
         </div>
-        <button class="btn-icon" id="btn-collapse-sidebar" title="Recolher sidebar">
-          <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-      </div>
-
-      <div class="sidebar-search">
-        <div class="search-input-wrap">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input id="sidebar-search" type="text" placeholder="Buscar..." autocomplete="off"/>
-        </div>
       </div>
 
       <nav class="sidebar-nav">
-        <a href="#" class="nav-item ${activeRoute.view === 'dashboard' ? 'active' : ''}" data-nav="dashboard">
+        <a href="#" class="nav-item ${activeRoute.view === 'dashboard' ? 'active' : ''}" data-nav="dashboard" title="Dashboard">
           <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Dashboard
+          Painel
         </a>
-        <a href="#" class="nav-item ${activeRoute.view === 'calendar' ? 'active' : ''}" data-nav="calendar">
+        <a href="#" class="nav-item ${activeRoute.view === 'calendar' ? 'active' : ''}" data-nav="calendar" title="Calendário">
           <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Calendário
+          Agenda
         </a>
-        <a href="#" class="nav-item ${activeRoute.view === 'timer' ? 'active' : ''}" data-nav="timer">
+        <a href="#" class="nav-item ${activeRoute.view === 'timer' ? 'active' : ''}" data-nav="timer" title="Pomodoro">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Pomodoro
+          Timer
         </a>
-        <a href="#" class="nav-item ${activeRoute.view === 'discord-chat' ? 'active' : ''}" data-nav="discord-chat">
+        <a href="#" class="nav-item ${activeRoute.view === 'discord-chat' ? 'active' : ''}" data-nav="discord-chat" title="Chat Discord">
           <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Chat Discord
+          Chat
         </a>
-        <a href="#" class="nav-item ${activeRoute.view === 'integrations' ? 'active' : ''}" data-nav="integrations">
+        <a href="#" class="nav-item ${activeRoute.view === 'integrations' ? 'active' : ''}" data-nav="integrations" title="Integrações">
           <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          Integrações
+          Integrar
         </a>
         <a href="https://notebooklm.google.com" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-external" id="btn-notebooklm" title="Abrir NotebookLM">
           <svg viewBox="0 0 24 24" style="stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M12 6l1.5 3 3 .5-2 2 .5 3L12 13l-3 1.5.5-3-2-2 3-.5z"/></svg>
-          NotebookLM
-          <svg class="external-icon" viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;margin-left:auto;opacity:0.6;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          IA
         </a>
       </nav>
 
-      <div class="sidebar-scrollable">
-        ${this._renderScheduleSection(subjects, schedule)}
-        ${this._renderCoursesSection(courses)}
-        ${this._renderLinksSection(usefulLinks)}
-
-        <div class="sidebar-section-header">
-          <span>MATÉRIAS</span>
-          <button class="btn-icon btn-add-subject" id="btn-new-subject" title="Nova matéria">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
-
-        <div class="sidebar-subjects" id="sidebar-subjects">
-          ${subjects.length === 0 ? '<p class="sidebar-empty">Nenhuma matéria ainda.</p>' : subjects.map(s => this._renderSubject(s, pages, tasks, mindmaps, materials, activeRoute)).join('')}
-        </div>
-      </div>
+      <div style="flex:1;"></div>
 
       <div class="sidebar-footer">
-        <div class="sidebar-backup-actions">
-          <button class="theme-toggle" id="btn-export-backup" title="Exportar Backup de Dados">
-            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span>Exportar Backup</span>
-          </button>
-          <button class="theme-toggle" id="btn-import-backup" title="Importar Backup de Dados">
-            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Importar Backup</span>
-          </button>
-          <input type="file" id="input-import-backup" accept=".json" style="display:none;"/>
-        </div>
-        <button class="btn-icon theme-toggle" id="btn-theme" title="Alternar tema">
+        <button class="theme-toggle" id="btn-theme" title="Alternar tema">
           <svg id="theme-icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
           <svg id="theme-icon-sun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
-          <span>Tema</span>
         </button>
       </div>
     `;

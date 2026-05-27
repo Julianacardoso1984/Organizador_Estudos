@@ -54,48 +54,105 @@ class DashboardView {
     const quote = motivationalQuotes[quoteIndex];
 
     this.el.innerHTML = `
-      <div class="view-content dashboard-content">
-        <div class="dashboard-greeting" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 32px;">
-          <div>
-            <h1>${greeting}! 👋</h1>
-            <p class="greeting-date">${now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
-            <blockquote class="motivational-quote">
-              <span class="quote-icon">✨</span>
-              <span class="quote-text">"${quote.text}"</span>
-              <span class="quote-author">— ${quote.author}</span>
-            </blockquote>
-          </div>
-          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
-            ${this._renderPomodoroWidget(timerState)}
-            <div class="dashboard-clock" id="dashboard-clock" title="Hora atual">
-              <span class="dash-clock-time">00:00:00</span>
+      <div class="view-content dashboard-content canvas-dashboard">
+        <!-- Coluna Esquerda: Course Cards -->
+        <div class="canvas-main">
+          <div style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+            <div>
+              <h1 style="font-size: 1.6rem; margin-bottom:4px;">Painel</h1>
+              <p class="greeting-date" style="color:var(--text-muted); font-size: 0.9rem;">${greeting}, hoje é ${now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</p>
+            </div>
+            <div>
+              <button class="btn-primary" id="btn-dash-new-subject" style="display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor; fill:none; stroke-width:2;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova Matéria
+              </button>
             </div>
           </div>
+
+          <div class="course-card-grid">
+            ${subjects.length === 0 ? `<div class="empty-state" style="grid-column: 1 / -1; padding: 40px; text-align: center;"><div class="empty-icon" style="font-size:3rem; margin-bottom:16px;">🎓</div><h2>Comece agora!</h2><p style="color:var(--text-muted);">Crie sua primeira matéria para começar a estudar.</p></div>` : ''}
+            ${subjects.map(s => {
+              const subPages = pages.filter(p=>p.subjectId===s.id).length;
+              const subTasks = tasks.filter(t=>t.subjectId===s.id && t.status !== 'done').length;
+              return `
+              <a href="#" class="course-card" data-nav="notes" data-subject-id="${s.id}">
+                <div class="course-card-color" style="background-color: ${s.color}; color: #fff;">
+                  ${s.emoji}
+                </div>
+                <div class="course-card-content">
+                  <div class="course-card-subtitle">Matéria</div>
+                  <div class="course-card-title" title="${s.name}">${s.name}</div>
+                  <div class="course-card-footer">
+                    <div class="course-card-footer-icon" title="${subPages} Anotações">
+                      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                      ${subPages}
+                    </div>
+                    <div class="course-card-footer-icon" title="${subTasks} Tarefas Pendentes">
+                      <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                      ${subTasks}
+                    </div>
+                  </div>
+                </div>
+              </a>`;
+            }).join('')}
+          </div>
         </div>
-        <div class="stats-grid">
-          ${this._stat('📚', subjects.length, 'Matérias', '#8B5CF6')}
-          ${this._stat('📝', pages.length, 'Páginas', '#06B6D4')}
-          ${this._stat('✅', taskStats.done||0, 'Tarefas Feitas', '#10B981')}
-          ${this._stat('⏱️', timeStr, 'Tempo Focado', '#EC4899', `
-            <button id="btn-reset-focus-time" style="background: none; border: none; padding: 2px 6px; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; border-radius: 4px; transition: all 0.2s;" title="Zerar tempo focado" onmouseover="this.style.color='var(--accent)';" onmouseout="this.style.color='var(--text-muted)';">
-              <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-            </button>
-          `)}
+
+        <!-- Coluna Direita: To Do & Coming Up -->
+        <div class="canvas-sidebar-right">
+          <div class="canvas-todo">
+            <div class="todo-header">
+              A Fazer
+              <span style="background:var(--bg-active); padding: 2px 6px; border-radius:12px; font-size:0.75rem;">${tasks.filter(t=>t.status!=='done').length}</span>
+            </div>
+            ${tasks.filter(t=>t.status!=='done').slice(0, 5).map(t => {
+              const s = subjects.find(x=>x.id===t.subjectId);
+              return `
+              <div class="todo-item">
+                <div class="todo-item-icon">
+                  <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor; fill:none; stroke-width:2;"><circle cx="12" cy="12" r="10"/></svg>
+                </div>
+                <div class="todo-item-content">
+                  <div class="todo-item-title">${t.title}</div>
+                  <div class="todo-item-meta">${s ? s.name : ''} • ${t.dueDate ? this._fmtDate(t.dueDate) : 'Sem data'}</div>
+                </div>
+              </div>`;
+            }).join('')}
+            ${tasks.filter(t=>t.status!=='done').length === 0 ? '<p style="font-size:0.85rem; color:var(--text-muted);">Nada pendente!</p>' : ''}
+            
+            <div class="todo-header" style="margin-top:24px;">
+              Próximos Eventos
+            </div>
+            ${upcoming.map(ev => {
+              const s = subjects.find(x=>x.id===ev.subjectId);
+              return `
+              <div class="todo-item">
+                <div class="todo-item-icon" style="color:${ev.color || 'var(--accent)'}">
+                  <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor; fill:none; stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div class="todo-item-content">
+                  <div class="todo-item-title">${ev.title}</div>
+                  <div class="todo-item-meta">${this._fmtDate(ev.date)} ${s ? '• ' + s.name : ''}</div>
+                </div>
+              </div>`;
+            }).join('')}
+            ${upcoming.length === 0 ? '<p style="font-size:0.85rem; color:var(--text-muted);">Sem eventos próximos.</p>' : ''}
+          </div>
         </div>
-        ${subjects.length > 0 ? this._renderProgress(subjects, pages, tasks) : ''}
-        <div class="dashboard-columns">
-          ${recentPages.length > 0 ? this._renderRecent(recentPages, subjects) : ''}
-          ${upcoming.length > 0 ? this._renderUpcoming(upcoming, subjects) : ''}
-        </div>
-        ${subjects.length === 0 ? `<div class="empty-state"><div class="empty-icon">🎓</div><h2>Comece agora!</h2><p>Crie sua primeira matéria na barra lateral.</p></div>` : ''}
       </div>`;
 
     // Bind nav buttons
     this.el.querySelectorAll('[data-nav]').forEach(el => {
       el.addEventListener('click', e => {
         e.preventDefault();
-        EventBus.emit('navigate', {view:el.dataset.nav, pageId:el.dataset.pageId, subjectId:el.dataset.subjectId});
+        // Since course cards navigate to subject's notes directly, emit navigation for that subject
+        EventBus.emit('navigate', {view: el.dataset.nav, pageId: el.dataset.pageId, subjectId: el.dataset.subjectId});
       });
+    });
+
+    this.el.querySelector('#btn-dash-new-subject')?.addEventListener('click', () => {
+      EventBus.emit('ui:newSubject');
     });
 
     // Zerar tempo focado
