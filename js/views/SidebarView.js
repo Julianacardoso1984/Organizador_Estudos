@@ -11,6 +11,7 @@ class SidebarView {
     this._scheduleExpanded = true;
     this._coursesExpanded = true;
     this._linksExpanded = true;
+    this._trayOpen = false;
   }
 
   render(subjects, pages, tasks, mindmaps, materials, activeRoute, schedule = {}, courses = [], usefulLinks = []) {
@@ -73,13 +74,19 @@ class SidebarView {
           </nav>
         </div>
       `;
-    } else {
-      courseNavHtml = `
-        <div class="course-nav-container" style="background: var(--bg); overflow-y: auto;">
-          <div class="course-nav-header" style="color: var(--text);">
-            Recursos Gerais
+    }
+
+    let trayHtml = '';
+    if (this._trayOpen) {
+      trayHtml = `
+        <div class="canvas-tray-container" id="resources-tray">
+          <div class="tray-header">
+            <h3>Recursos Gerais</h3>
+            <button class="btn-icon" id="btn-close-tray" title="Fechar">
+              <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
-          <div style="padding: 0; display: flex; flex-direction: column;">
+          <div class="tray-body">
             ${this._renderScheduleSection(subjects, schedule)}
             ${this._renderCoursesSection(courses)}
             ${this._renderLinksSection(usefulLinks)}
@@ -102,6 +109,12 @@ class SidebarView {
             <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Painel
           </a>
+          
+          <button class="nav-item ${this._trayOpen ? 'active' : ''}" id="btn-toggle-tray" title="Recursos Gerais">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+            Recursos
+          </button>
+
           <a href="#" class="nav-item ${activeRoute.view === 'calendar' ? 'active' : ''}" data-nav="calendar" title="Calendário">
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Agenda
@@ -134,6 +147,7 @@ class SidebarView {
         </div>
       </div>
       ${courseNavHtml}
+      ${trayHtml}
     `;
 
     this._bindEvents();
@@ -354,6 +368,16 @@ class SidebarView {
   }
 
   _bindEvents() {
+    // Toggle Tray
+    document.getElementById('btn-toggle-tray')?.addEventListener('click', () => {
+      this._trayOpen = !this._trayOpen;
+      EventBus.emit('ui:renderSidebar'); // We need to re-render to show/hide the tray
+    });
+    document.getElementById('btn-close-tray')?.addEventListener('click', () => {
+      this._trayOpen = false;
+      EventBus.emit('ui:renderSidebar');
+    });
+
     // Collapse sidebar
     document.getElementById('btn-collapse-sidebar')?.addEventListener('click', () => {
       this.collapsed = !this.collapsed;

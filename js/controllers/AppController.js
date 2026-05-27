@@ -187,6 +187,8 @@ class AppController {
       this.navigate(view, { pageId, subjectId, mapId });
     });
 
+    EventBus.on('ui:renderSidebar', () => this._renderSidebar());
+
     // ─ Theme ─
     EventBus.on('ui:toggleTheme', () => {
       this._theme = this._theme === 'dark' ? 'light' : 'dark';
