@@ -5,8 +5,9 @@
  */
 class TimerModel {
   constructor() {
+    const savedFocusTime = Storage.get('pomodoroFocusTime') || 25;
     this.MODES = {
-      focus:      { label: 'Foco',         duration: 25 * 60 },
+      focus:      { label: 'Foco',         duration: savedFocusTime * 60 },
       shortBreak: { label: 'Pausa Curta',  duration:  5 * 60 },
       longBreak:  { label: 'Pausa Longa',  duration: 15 * 60 }
     };
@@ -95,6 +96,17 @@ class TimerModel {
     EventBus.emit('timer:tick', this._state());
   }
 
+  setFocusTime(minutes) {
+    const mins = parseInt(minutes, 10);
+    if (!mins || mins <= 0) return;
+    this.MODES.focus.duration = mins * 60;
+    Storage.set('pomodoroFocusTime', mins);
+    if (this.mode === 'focus' && !this.running) {
+      this.remaining = this.MODES.focus.duration;
+      EventBus.emit('timer:tick', this._state());
+    }
+  }
+
   _state() {
     return {
       mode:      this.mode,
@@ -102,7 +114,8 @@ class TimerModel {
       total:     this.MODES[this.mode].duration,
       remaining: this.remaining,
       running:   this.running,
-      session:   this.session
+      session:   this.session,
+      focusDurationMinutes: this.MODES.focus.duration / 60
     };
   }
 }

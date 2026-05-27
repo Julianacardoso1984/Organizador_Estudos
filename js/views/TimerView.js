@@ -45,6 +45,13 @@ class TimerView {
           <button class="mode-tab ${mode==='longBreak'?'active':''}" data-mode="longBreak">🛌 Pausa Longa</button>
         </div>
 
+        ${mode === 'focus' ? `
+        <div class="timer-settings" style="margin-top: 8px; display: flex; align-items: center; gap: 8px; justify-content: center;">
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Tempo de foco (min):</label>
+          <input type="number" id="input-focus-time" value="${state.focusDurationMinutes}" min="1" max="120" style="width: 60px; padding: 4px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text); text-align: center;">
+        </div>` : ''}
+
+
         <div class="timer-ring-wrap" style="margin:0;">
           <svg class="timer-ring" viewBox="0 0 260 260">
             <circle cx="130" cy="130" r="${radius}" class="ring-bg"/>
@@ -168,6 +175,13 @@ class TimerView {
     this.el.querySelectorAll('.mode-tab').forEach(btn => {
       btn.addEventListener('click', () => EventBus.emit('timer:setMode', btn.dataset.mode));
     });
+
+    const focusInput = this.el.querySelector('#input-focus-time');
+    if (focusInput) {
+      focusInput.addEventListener('change', (e) => {
+        EventBus.emit('timer:setFocusTime', e.target.value);
+      });
+    }
 
     // Sons Ambientes
     this.el.querySelectorAll('.btn-sound-toggle').forEach(btn => {

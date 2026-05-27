@@ -432,6 +432,12 @@ class AppController {
     EventBus.on('timer:skip', () => { this.models.timerModel._complete(); this._renderTimer(); updateDashTimer(); });
     EventBus.on('timer:setMode', (mode) => { this.models.timerModel.setMode(mode); this._renderTimer(); updateDashTimer(); });
     EventBus.on('timer:tick', () => { if (this._route.view === 'timer') this._renderTimer(); updateDashTimer(); });
+    EventBus.on('timer:setFocusTime', (minutes) => {
+      this.models.timerModel.setFocusTime(minutes);
+      this._toast(`Tempo de foco alterado para ${minutes} minutos!`);
+      if (this._route.view === 'timer') this._renderTimer();
+      updateDashTimer();
+    });
     EventBus.on('timer:complete', ({ mode, session }) => {
       const msg = mode === 'focus' ? '✅ Sessão de foco concluída!' : '🎯 Hora de focar!';
       this._toast(msg);
