@@ -73,6 +73,19 @@ class SidebarView {
           </nav>
         </div>
       `;
+    } else {
+      courseNavHtml = `
+        <div class="course-nav-container" style="background: var(--bg); overflow-y: auto;">
+          <div class="course-nav-header" style="color: var(--text);">
+            Recursos Gerais
+          </div>
+          <div style="padding: 0; display: flex; flex-direction: column;">
+            ${this._renderScheduleSection(subjects, schedule)}
+            ${this._renderCoursesSection(courses)}
+            ${this._renderLinksSection(usefulLinks)}
+          </div>
+        </div>
+      `;
     }
 
     this.el.innerHTML = `
