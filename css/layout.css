@@ -482,8 +482,8 @@ body {
   display: grid;
   grid-template-columns: 1fr 300px;
   gap: 32px;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 1600px;
+  margin: 0;
 }
 @media (max-width: 1024px) {
   .canvas-dashboard { grid-template-columns: 1fr; }
