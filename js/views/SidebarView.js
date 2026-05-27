@@ -58,10 +58,18 @@ class SidebarView {
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               Simulados
             </a>
-            <a href="#" class="course-nav-item ${activeRoute.view === 'mindmaps' ? 'active' : ''}" data-nav="mindmaps" data-subject-id="${activeSubject.id}">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><line x1="3" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="21"/></svg>
-              Mapas Mentais
-            </a>
+            
+            <div style="margin-top: 16px; padding: 0 12px 8px; font-size: 0.7rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700; letter-spacing: 0.05em;">Mapas Mentais</div>
+            ${mindmaps.filter(m => m.subjectId === activeSubject.id).map(mm => `
+              <a href="#" class="course-nav-item ${activeRoute.mapId === mm.id ? 'active' : ''}" data-nav="mindmap" data-map-id="${mm.id}" data-subject-id="${activeSubject.id}">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="6" y1="6" x2="9.5" y2="10"/><line x1="18" y1="6" x2="14.5" y2="10"/><line x1="6" y1="18" x2="9.5" y2="14"/><line x1="18" y1="18" x2="14.5" y2="14"/></svg>
+                ${this._esc(mm.name)}
+              </a>
+            `).join('')}
+            <button class="course-nav-item child-add-map" style="background: none; border: none; width: 100%; text-align: left; opacity: 0.7; cursor: pointer;" data-subject-id="${activeSubject.id}">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Novo mapa
+            </button>
           </nav>
         </div>
       `;
