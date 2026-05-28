@@ -7,13 +7,14 @@ O **EstudaAí** é uma aplicação web completa (Single Page Application) desenv
 ## 🚀 Funcionalidades Principais
 
 *   **📊 Dashboard Inteligente**: Painel principal com estatísticas de progresso por matéria, tarefas pendentes, eventos futuros integrados e mensagem de boas-vindas dinâmica.
-*   **📂 Sidebar Hierárquica**: Navegação dinâmica para criação e exclusão de **Matérias**, com abas exclusivas para Páginas, Tarefas, Materiais e Mapas Mentais vinculados a cada disciplina.
+*   **📂 Navegação Estilo Canvas LMS**: Barra lateral global minimalista à esquerda combinada com um menu contextual de curso (Course Nav) para navegação rápida e sem distrações entre as funcionalidades de cada matéria.
+*   **🛠️ Recursos Gerais (Página Dedicada)**: Área centralizada para você gerenciar o seu Cronograma Semanal de Estudos, Plataformas de Cursos em vídeo e Links Úteis.
 *   **✍️ Editor de Blocos (estilo Notion)**: Editor de conteúdo modular e interativo. Pressione `/` a qualquer momento para abrir o menu de blocos (Títulos H1-H3, Listas Ordenadas/Não Ordenadas, Checkboxes Interativos, Divisores, Citações e Parágrafos) com salvamento automático.
 *   **📋 Kanban de Tarefas**: Gerenciador de tarefas com colunas *A Fazer*, *Em Progresso* e *Concluído*, com badges de prioridade (Alta, Média, Baixa) e alertas visuais de prazos vencidos.
 *   **📅 Calendário Mensal Integrado**: Grade de calendário interativa que exibe automaticamente prazos de tarefas e permite agendar eventos personalizados de estudo.
 *   **📥 Gerenciador de Materiais**: Upload de arquivos locais (PDF, Imagens, Vídeos, Áudios) com pré-visualização integrada e players nativos direto na aplicação.
 *   **🧠 Editor de Mapas Mentais (Canvas)**: Criação de mapas conceituais e mentais interativos usando a API Canvas 2D nativa, com suporte a criação de nós com clique duplo, conexões dinâmicas segurando `Shift`, edição de texto e cores inline, e exportação do mapa como imagem PNG.
-*   **⏱ Temporizador Pomodoro**: Timer interativo com transições de status (Foco, Pausa Curta, Pausa Longa), feedbacks sonoros gerados por Web Audio API e contador de sessões.
+*   **⏱ Temporizador Pomodoro Customizável**: Timer interativo com transições de status (Foco, Pausa Curta, Pausa Longa), opções para configurar durações customizadas de tempo, feedbacks sonoros gerados por Web Audio API e contador de sessões.
 *   **🌓 Tema Dark / Light**: Customização total de interface através de tokens de design em CSS Variables, alternável com um clique no rodapé da barra lateral.
 
 ---
