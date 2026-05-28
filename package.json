@@ -1,0 +1,35 @@
+{
+  "name": "organizador_estudos",
+  "version": "1.0.0",
+  "description": "O **EstudaAí** é uma aplicação web completa (Single Page Application) desenvolvida para gerenciar rotinas de estudo de forma centralizada, produtiva e altamente visual. Inspirado no design minimalista e modular do Notion, o projeto foi construído utilizando **HTML5, CSS3 e JavaScript (ES6+) puros**, seguindo rigorosamente a arquitetura de software **MVC (Model-View-Controller)** para máxima robustez e escalabilidade.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --verbose",
+    "test:watch": "jest --watch --verbose",
+    "test:coverage": "jest --coverage --verbose"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"],
+    "collectCoverageFrom": [
+      "js/models/**/*.js",
+      "js/utils/eventBus.js",
+      "js/utils/storage.js"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Julianacardoso1984/Organizador_Estudos.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Julianacardoso1984/Organizador_Estudos/issues"
+  },
+  "homepage": "https://github.com/Julianacardoso1984/Organizador_Estudos#readme",
+  "devDependencies": {
+    "jest": "^30.4.2"
+  }
+}
