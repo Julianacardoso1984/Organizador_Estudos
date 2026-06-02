@@ -514,102 +514,141 @@ class AppController {
       this._render();
     });
 
-    EventBus.on('ui:generateAIMindMap', ({ mapId }) => {
-      const { subjectModel, mindMapModel, materialModel } = this.models;
-      const map = mindMapModel.getById(mapId);
-      const subjectId = map?.subjectId;
-      const materials = materialModel.getBySubject(subjectId);
-      const savedKey = Storage.get('geminiAPIKey') || '';
+    // ── NotebookLM MindMap Integration ──────────────────────────────────────
 
-      let materialsOption = '';
-      if (materials && materials.length > 0) {
-        materialsOption = `
-          <div>
-            <label class="modal-label">📚 Basear no material de estudo (Opcional)</label>
-            <select id="modal-ai-material" class="select-input" style="width:100%;">
-              <option value="">Nenhum (usar Assunto/Tema digitado acima)</option>
-              ${materials.map(m => `<option value="${m.id}">${m.name} (${m.type.toUpperCase()})</option>`).join('')}
-            </select>
-            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height: 1.4;">
-              A I.A irá analisar o conteúdo do arquivo selecionado (suporta PDF, imagens e textos) e criará o mapa com base no material!
-            </p>
-          </div>
-        `;
-      }
+    EventBus.on('ui:openNotebookLMMindMapModal', ({ map }) => {
+      const subject = this.models.subjectModel.getById(map.subjectId);
+      const subjectName = subject?.name || 'Estudo';
 
       this._openModal(`
-        <h2>Gerar Mapa com Inteligência Artificial 🪄</h2>
-        <div style="display:flex; flex-direction:column; gap:16px; margin: 16px 0;">
-          <div>
-            <label class="modal-label">Assunto / Tema do Mapa</label>
-            <input id="modal-ai-prompt" class="modal-input" type="text" placeholder="Ex: Fotossíntese, Revolução Francesa, Programação Funcional..." maxlength="100" style="width:100%;">
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;"><rect width="24" height="24" rx="4" fill="#1a73e8"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Gerar Mapa Mental com NotebookLM
+        </h2>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:2px 0 18px 0;line-height:1.5;">
+          Gere a estrutura do mapa no NotebookLM e importe de volta em JSON.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#1a73e8 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #1a73e8;">
+            <span style="font-size:1.1rem;font-weight:700;color:#1a73e8;">1</span>
+            <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Defina o tema do mapa mental</span>
           </div>
-          ${materialsOption}
           <div>
-            <label class="modal-label">Chave de API do Google Gemini (Opcional)</label>
-            <div style="display:flex; gap:8px;">
-              <input id="modal-ai-key" class="modal-input" type="password" placeholder="Cole sua chave API do Gemini aqui..." value="${savedKey}" style="flex:1;">
-              <a href="https://aistudio.google.com/" target="_blank" class="btn-ghost" style="text-decoration:none; display:flex; align-items:center; font-size:0.75rem; padding: 0 10px; border: 1px solid var(--border); border-radius:var(--radius-sm);">Obter chave grátis ↗</a>
-            </div>
-            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height: 1.4;">
-              A chave é salva localmente e de forma segura apenas no seu navegador. Se deixada em branco, usaremos o <strong>Modo Simulação local</strong> para gerar um lindo mapa mental estruturado instantaneamente!
-            </p>
+            <label class="modal-label">Tema / Assunto</label>
+            <input id="nlm-mm-theme" class="modal-input" type="text"
+              placeholder="Ex: Fotossíntese, Revolução Francesa..."
+              style="width:100%;" value="${map.name}">
           </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#34a853 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #34a853;">
+            <span style="font-size:1.1rem;font-weight:700;color:#34a853;">2</span>
+            <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Abra o NotebookLM e cole o prompt abaixo</span>
+          </div>
+          <div style="position:relative;">
+            <label class="modal-label">Prompt pronto para copiar 📋</label>
+            <textarea id="nlm-mm-prompt-text" class="modal-input" rows="8" readonly
+              style="font-size:0.75rem;font-family:monospace;resize:none;width:100%;color:var(--text-muted);line-height:1.5;"></textarea>
+            <button id="nlm-mm-copy-prompt" style="position:absolute;top:28px;right:8px;padding:4px 10px;font-size:0.72rem;border:1px solid var(--border);background:var(--bg-card);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);">Copiar</button>
+          </div>
+          <a href="https://notebooklm.google.com" target="_blank" rel="noopener"
+            style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;background:linear-gradient(135deg,#1a73e8,#34a853);color:#fff;border-radius:var(--radius-sm);font-weight:600;font-size:0.85rem;text-decoration:none;">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><polyline points="15 3 21 3 21 9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><line x1="10" y1="14" x2="21" y2="3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+            Abrir NotebookLM ↗
+          </a>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="margin-top:20px;">
           <button class="btn-ghost" id="modal-cancel">Cancelar</button>
-          <button class="btn-primary" id="modal-confirm-ai" style="background:#8B5CF6;">Gerar Mapa ✨</button>
+          <button class="btn-primary" id="nlm-mm-next-step" style="background:linear-gradient(135deg,#1a73e8,#34a853);">Já gerei o mapa → Importar</button>
         </div>
       `, () => {
-        document.getElementById('modal-confirm-ai')?.addEventListener('click', async () => {
-          const prompt = document.getElementById('modal-ai-prompt')?.value.trim();
-          const apiKey = document.getElementById('modal-ai-key')?.value.trim();
-          const materialId = document.getElementById('modal-ai-material')?.value;
-
-          if (!prompt && !materialId) {
-            alert('Por favor, insira o assunto do mapa ou selecione um material de estudo.');
-            return;
-          }
-
-          Storage.set('geminiAPIKey', apiKey);
-
-          this._closeModal();
-          this._toast('🪄 Gerando mapa mental com I.A...');
-
-          try {
-            let result;
-            if (apiKey) {
-              let fileData = null;
-              if (materialId) {
-                const meta = materialModel.getById(materialId);
-                const blob = await materialModel.getBlob(materialId);
-                if (meta && blob) {
-                  const base64 = await this._blobToBase64(blob);
-                  fileData = { mimeType: meta.mimeType || blob.type, base64 };
-                }
-              }
-              const finalPrompt = prompt || (materialId ? `Conteúdo do arquivo ${materialModel.getById(materialId)?.name}` : '');
-              result = await this._fetchGeminiMindMap(finalPrompt, apiKey, fileData);
-            } else {
-              const subjectTitle = materialId
-                ? materialModel.getById(materialId)?.name.split('.')[0]
-                : prompt;
-              result = this._generateLocalMockMap(subjectTitle);
-              this._toast('✨ Mapa gerado via simulação local! Para I.A real, adicione uma chave Gemini.');
-            }
-
-            if (result && result.nodes) {
-              mindMapModel.saveGraph(mapId, result.nodes, result.edges);
-              this._render();
-              this._toast('✅ Mapa mental gerado com sucesso!');
-            }
-          } catch (e) {
-            console.error(e);
-            alert('Falha ao gerar mapa mental: ' + e.message);
+        const updatePrompt = () => {
+          const theme = document.getElementById('nlm-mm-theme')?.value.trim() || map.name;
+          const ta = document.getElementById('nlm-mm-prompt-text');
+          if (ta) ta.value = this._buildNotebookLMMindMapPrompt(subjectName, theme, map.type);
+        };
+        updatePrompt();
+        document.getElementById('nlm-mm-theme')?.addEventListener('input', updatePrompt);
+        document.getElementById('nlm-mm-copy-prompt')?.addEventListener('click', () => {
+          const ta = document.getElementById('nlm-mm-prompt-text');
+          if (ta) {
+            navigator.clipboard.writeText(ta.value).then(() => {
+              const btn = document.getElementById('nlm-mm-copy-prompt');
+              if (btn) { btn.textContent = '✓ Copiado!'; btn.style.color = '#10B981'; }
+              setTimeout(() => { if (btn) { btn.textContent = 'Copiar'; btn.style.color = ''; } }, 2000);
+            }).catch(() => { ta.select(); document.execCommand('copy'); });
           }
         });
-        document.getElementById('modal-ai-prompt')?.focus();
+        document.getElementById('nlm-mm-next-step')?.addEventListener('click', () => {
+          const theme = document.getElementById('nlm-mm-theme')?.value.trim() || map.name;
+          this._closeModal();
+          setTimeout(() => EventBus.emit('ui:openNotebookLMMindMapImportModal', { map, theme }), 120);
+        });
       });
+    });
+
+    EventBus.on('ui:openNotebookLMMindMapImportModal', ({ map, theme }) => {
+      this._openModal(`
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;"><rect width="24" height="24" rx="4" fill="#1a73e8"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Importar Mapa Mental do NotebookLM
+        </h2>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#34a853 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #34a853;margin-bottom:12px;">
+          <span style="font-size:1.1rem;font-weight:700;color:#34a853;">3</span>
+          <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Cole o JSON gerado pelo NotebookLM abaixo</span>
+        </div>
+        <textarea id="nlm-mm-import-json" class="modal-input" rows="10"
+          placeholder='Cole aqui o JSON gerado pelo NotebookLM...'
+          style="font-size:0.75rem;font-family:monospace;resize:vertical;width:100%;min-height:180px;line-height:1.5;"></textarea>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;padding:10px;background:var(--bg);border-radius:var(--radius-sm);border:1px dashed var(--border);">
+          <strong style="color:var(--text);">Formato esperado:</strong><br>
+          <code style="font-size:0.7rem;">{"nodes":[{"id":"1","text":"Nó central","x":400,"y":300,"color":"#8B5CF6"}],"edges":[{"id":"e1","from":"1","to":"2","label":""}]}</code>
+        </div>
+        <div class="modal-footer" style="margin-top:16px;">
+          <button class="btn-ghost" id="nlm-mm-back-step">← Voltar</button>
+          <button class="btn-primary" id="nlm-mm-import-btn" style="background:linear-gradient(135deg,#1a73e8,#34a853);">✅ Importar Mapa</button>
+        </div>
+      `, () => {
+        document.getElementById('nlm-mm-import-btn')?.addEventListener('click', () => {
+          const raw = document.getElementById('nlm-mm-import-json')?.value.trim();
+          if (!raw) { alert('Cole o JSON antes de importar.'); return; }
+          EventBus.emit('ui:importNotebookLMMindMap', { mapId: map.id, raw });
+        });
+        document.getElementById('nlm-mm-back-step')?.addEventListener('click', () => {
+          this._closeModal();
+          setTimeout(() => EventBus.emit('ui:openNotebookLMMindMapModal', { map }), 120);
+        });
+        document.getElementById('nlm-mm-import-json')?.focus();
+      });
+    });
+
+    EventBus.on('ui:importNotebookLMMindMap', ({ mapId, raw }) => {
+      const { mindMapModel } = this.models;
+      let data = null;
+      try {
+        data = JSON.parse(raw);
+        if (!Array.isArray(data.nodes) || data.nodes.length === 0) throw new Error('nodes ausente ou vazio');
+      } catch (e) {
+        alert('❌ JSON inválido.\n\nCopie o bloco JSON completo (com { } e a chave "nodes").\n\nDica: peça ao NotebookLM "responder apenas com o JSON, sem texto adicional".');
+        return;
+      }
+      const nodes = data.nodes.map((n, i) => ({
+        id: n.id || String(i + 1),
+        text: n.text || n.label || 'Nó',
+        x: typeof n.x === 'number' ? n.x : 200 + (i % 5) * 180,
+        y: typeof n.y === 'number' ? n.y : 150 + Math.floor(i / 5) * 120,
+        color: n.color || '#8B5CF6',
+        width: n.width || 130,
+        height: n.height || 44
+      }));
+      const edges = (data.edges || []).map((e, i) => ({
+        id: e.id || `e${i}`,
+        from: e.from,
+        to: e.to,
+        label: e.label || ''
+      })).filter(e => e.from && e.to);
+      mindMapModel.saveGraph(mapId, nodes, edges);
+      this._closeModal();
+      this._toast(`✅ Mapa importado com ${nodes.length} nós!`);
+      this._render();
     });
 
     EventBus.on('ui:deleteMindMap', ({ mapId }) => {
@@ -821,108 +860,147 @@ class AppController {
       this._render();
     });
 
-    EventBus.on('ui:generateAIFlashcards', ({ subjectId }) => {
-      const { flashcardModel, materialModel, subjectModel } = this.models;
-      const subject = subjectModel.getById(subjectId);
-      const materials = materialModel.getBySubject(subjectId);
-      const savedKey = Storage.get('geminiAPIKey') || '';
+    // ── NotebookLM Flashcard Integration ───────────────────────────────────
 
-      let materialsOption = '';
-      if (materials && materials.length > 0) {
-        materialsOption = `
-          <div>
-            <label class="modal-label">📚 Basear no material de estudo (Opcional)</label>
-            <select id="modal-fc-ai-material" class="select-input" style="width:100%;">
-              <option value="">Nenhum (usar Tema digitado acima)</option>
-              ${materials.map(m => `<option value="${m.id}">${m.name} (${m.type.toUpperCase()})</option>`).join('')}
-            </select>
-            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height:1.4;">
-              A I.A analisará o material e criará flashcards com base no seu conteúdo!
-            </p>
-          </div>
-        `;
-      }
+    EventBus.on('ui:openNotebookLMFlashcardModal', ({ subjectId }) => {
+      const subject = this.models.subjectModel.getById(subjectId);
+      const subjectName = subject?.name || 'Estudo';
 
       this._openModal(`
-        <h2>Gerar Flashcards com I.A 🪄</h2>
-        <div style="display:flex; flex-direction:column; gap:16px; margin:16px 0;">
-          <div>
-            <label class="modal-label">Tema / Assunto dos Flashcards</label>
-            <input id="modal-fc-ai-prompt" class="modal-input" type="text" placeholder="Ex: Fotossíntese, Segunda Guerra Mundial, Derivadas..." maxlength="100" style="width:100%;">
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;"><rect width="24" height="24" rx="4" fill="#1a73e8"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Gerar Flashcards com NotebookLM
+        </h2>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:2px 0 18px 0;line-height:1.5;">
+          Gere os flashcards no NotebookLM e importe de volta em JSON.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#1a73e8 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #1a73e8;">
+            <span style="font-size:1.1rem;font-weight:700;color:#1a73e8;">1</span>
+            <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Defina o tema e a quantidade de cards</span>
           </div>
-          <div>
-            <label class="modal-label">Quantidade de cards</label>
-            <select id="modal-fc-ai-qty" class="select-input" style="width:140px;">
-              <option value="5">5 cards</option>
-              <option value="10" selected>10 cards</option>
-              <option value="15">15 cards</option>
-              <option value="20">20 cards</option>
-            </select>
-          </div>
-          ${materialsOption}
-          <div>
-            <label class="modal-label">Chave de API do Google Gemini (Opcional)</label>
-            <div style="display:flex; gap:8px;">
-              <input id="modal-fc-ai-key" class="modal-input" type="password" placeholder="Cole sua chave API do Gemini aqui..." value="${savedKey}" style="flex:1;">
-              <a href="https://aistudio.google.com/" target="_blank" class="btn-ghost" style="text-decoration:none; display:flex; align-items:center; font-size:0.75rem; padding:0 10px; border:1px solid var(--border); border-radius:var(--radius-sm);">Obter chave ↗</a>
+          <div style="display:flex;gap:12px;align-items:flex-end;">
+            <div style="flex:1;">
+              <label class="modal-label">Tema / Assunto</label>
+              <input id="nlm-fc-theme" class="modal-input" type="text"
+                placeholder="Ex: Álgebra Linear, Mitose, Guerra Fria..."
+                style="width:100%;" value="${subjectName}">
             </div>
-            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height:1.4;">
-              A chave é salva apenas no seu navegador. Sem chave, usaremos o <strong>Modo Simulação local</strong> para gerar cards de exemplo!
-            </p>
+            <div>
+              <label class="modal-label">Quantidade</label>
+              <select id="nlm-fc-qty" class="modal-input" style="width:90px;">
+                <option value="5">5 cards</option>
+                <option value="10" selected>10 cards</option>
+                <option value="15">15 cards</option>
+                <option value="20">20 cards</option>
+              </select>
+            </div>
           </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#34a853 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #34a853;">
+            <span style="font-size:1.1rem;font-weight:700;color:#34a853;">2</span>
+            <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Abra o NotebookLM e cole o prompt abaixo</span>
+          </div>
+          <div style="position:relative;">
+            <label class="modal-label">Prompt pronto para copiar 📋</label>
+            <textarea id="nlm-fc-prompt-text" class="modal-input" rows="7" readonly
+              style="font-size:0.75rem;font-family:monospace;resize:none;width:100%;color:var(--text-muted);line-height:1.5;"></textarea>
+            <button id="nlm-fc-copy-prompt" style="position:absolute;top:28px;right:8px;padding:4px 10px;font-size:0.72rem;border:1px solid var(--border);background:var(--bg-card);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);">Copiar</button>
+          </div>
+          <a href="https://notebooklm.google.com" target="_blank" rel="noopener"
+            style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;background:linear-gradient(135deg,#1a73e8,#34a853);color:#fff;border-radius:var(--radius-sm);font-weight:600;font-size:0.85rem;text-decoration:none;">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><polyline points="15 3 21 3 21 9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><line x1="10" y1="14" x2="21" y2="3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+            Abrir NotebookLM ↗
+          </a>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="margin-top:20px;">
           <button class="btn-ghost" id="modal-cancel">Cancelar</button>
-          <button class="btn-primary" id="modal-confirm-fc-ai" style="background:linear-gradient(135deg,#8B5CF6,#06B6D4);">Gerar Flashcards ✨</button>
+          <button class="btn-primary" id="nlm-fc-next-step" style="background:linear-gradient(135deg,#1a73e8,#34a853);">Já gerei os cards → Importar</button>
         </div>
       `, () => {
-        document.getElementById('modal-confirm-fc-ai')?.addEventListener('click', async () => {
-          const prompt = document.getElementById('modal-fc-ai-prompt')?.value.trim();
-          const apiKey = document.getElementById('modal-fc-ai-key')?.value.trim();
-          const materialId = document.getElementById('modal-fc-ai-material')?.value;
-          const qty = parseInt(document.getElementById('modal-fc-ai-qty')?.value || '10', 10);
+        const updatePrompt = () => {
+          const theme = document.getElementById('nlm-fc-theme')?.value.trim() || subjectName;
+          const qty = parseInt(document.getElementById('nlm-fc-qty')?.value || '10', 10);
+          const ta = document.getElementById('nlm-fc-prompt-text');
+          if (ta) ta.value = this._buildNotebookLMFlashcardPrompt(subjectName, theme, qty);
+        };
+        updatePrompt();
+        document.getElementById('nlm-fc-theme')?.addEventListener('input', updatePrompt);
+        document.getElementById('nlm-fc-qty')?.addEventListener('change', updatePrompt);
 
-          if (!prompt && !materialId) {
-            alert('Por favor, insira o tema ou selecione um material de estudo.');
-            return;
-          }
-
-          Storage.set('geminiAPIKey', apiKey);
-          this._closeModal();
-          this._toast('🪄 Gerando flashcards com I.A...');
-
-          try {
-            let cards = null;
-            if (apiKey) {
-              let fileData = null;
-              if (materialId) {
-                const meta = materialModel.getById(materialId);
-                const blob = await materialModel.getBlob(materialId);
-                if (meta && blob) {
-                  const base64 = await this._blobToBase64(blob);
-                  fileData = { mimeType: meta.mimeType || blob.type, base64 };
-                }
-              }
-              const finalPrompt = prompt || (materialId ? `Conteúdo do arquivo ${materialModel.getById(materialId)?.name}` : '');
-              cards = await this._fetchGeminiFlashcards(finalPrompt, apiKey, qty, fileData);
-            } else {
-              const topic = prompt || (materialId ? materialModel.getById(materialId)?.name.split('.')[0] : 'Conteúdo de Estudo');
-              cards = this._generateLocalMockFlashcards(topic, qty);
-              this._toast('✨ Cards gerados via simulação local! Para I.A real, adicione uma chave Gemini.');
-            }
-
-            if (cards && cards.length > 0) {
-              cards.forEach(c => flashcardModel.create(subjectId, c.front, c.back));
-              this._toast(`✅ ${cards.length} flashcards gerados com sucesso!`);
-              this._render();
-            }
-          } catch (e) {
-            console.error(e);
-            alert('Falha ao gerar flashcards: ' + e.message);
+        document.getElementById('nlm-fc-copy-prompt')?.addEventListener('click', () => {
+          const ta = document.getElementById('nlm-fc-prompt-text');
+          if (ta) {
+            navigator.clipboard.writeText(ta.value).then(() => {
+              const btn = document.getElementById('nlm-fc-copy-prompt');
+              if (btn) { btn.textContent = '✓ Copiado!'; btn.style.color = '#10B981'; }
+              setTimeout(() => { if (btn) { btn.textContent = 'Copiar'; btn.style.color = ''; } }, 2000);
+            }).catch(() => { ta.select(); document.execCommand('copy'); });
           }
         });
-        document.getElementById('modal-fc-ai-prompt')?.focus();
+
+        document.getElementById('nlm-fc-next-step')?.addEventListener('click', () => {
+          const theme = document.getElementById('nlm-fc-theme')?.value.trim() || subjectName;
+          const qty = parseInt(document.getElementById('nlm-fc-qty')?.value || '10', 10);
+          this._closeModal();
+          setTimeout(() => EventBus.emit('ui:openNotebookLMFlashcardImportModal', { subjectId, theme, qty }), 120);
+        });
       });
+    });
+
+    EventBus.on('ui:openNotebookLMFlashcardImportModal', ({ subjectId, theme, qty }) => {
+      this._openModal(`
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;"><rect width="24" height="24" rx="4" fill="#1a73e8"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Importar Flashcards do NotebookLM
+        </h2>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#34a853 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #34a853;margin-bottom:12px;">
+          <span style="font-size:1.1rem;font-weight:700;color:#34a853;">3</span>
+          <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Cole o JSON gerado pelo NotebookLM abaixo</span>
+        </div>
+        <textarea id="nlm-fc-import-json" class="modal-input" rows="10"
+          placeholder='Cole aqui o JSON gerado pelo NotebookLM...'
+          style="font-size:0.75rem;font-family:monospace;resize:vertical;width:100%;min-height:180px;line-height:1.5;"></textarea>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;padding:10px;background:var(--bg);border-radius:var(--radius-sm);border:1px dashed var(--border);">
+          <strong style="color:var(--text);">Formato esperado:</strong><br>
+          <code style="font-size:0.7rem;">{"cards":[{"front":"Pergunta?","back":"Resposta completa."}]}</code>
+        </div>
+        <div class="modal-footer" style="margin-top:16px;">
+          <button class="btn-ghost" id="nlm-fc-back-step">← Voltar</button>
+          <button class="btn-primary" id="nlm-fc-import-btn" style="background:linear-gradient(135deg,#1a73e8,#34a853);">✅ Importar Flashcards</button>
+        </div>
+      `, () => {
+        document.getElementById('nlm-fc-import-btn')?.addEventListener('click', () => {
+          const raw = document.getElementById('nlm-fc-import-json')?.value.trim();
+          if (!raw) { alert('Cole o JSON antes de importar.'); return; }
+          EventBus.emit('ui:importNotebookLMFlashcards', { subjectId, raw });
+        });
+        document.getElementById('nlm-fc-back-step')?.addEventListener('click', () => {
+          this._closeModal();
+          setTimeout(() => EventBus.emit('ui:openNotebookLMFlashcardModal', { subjectId }), 120);
+        });
+        document.getElementById('nlm-fc-import-json')?.focus();
+      });
+    });
+
+    EventBus.on('ui:importNotebookLMFlashcards', ({ subjectId, raw }) => {
+      const { flashcardModel } = this.models;
+      let data = null;
+      try {
+        data = JSON.parse(raw);
+        if (!Array.isArray(data.cards) || data.cards.length === 0) throw new Error('cards ausente ou vazio');
+      } catch (e) {
+        alert('❌ JSON inválido.\n\nCopie o bloco JSON completo (com { } e a chave "cards").\n\nDica: peça ao NotebookLM "responder apenas com o JSON, sem texto adicional".');
+        return;
+      }
+      const valid = data.cards.filter(c => c && typeof c.front === 'string' && typeof c.back === 'string' && c.front && c.back);
+      if (valid.length === 0) {
+        alert('Nenhum card válido encontrado. Verifique se cada item tem os campos "front" e "back".');
+        return;
+      }
+      valid.forEach(c => flashcardModel.create(subjectId, c.front.trim(), c.back.trim()));
+      this._closeModal();
+      this._toast(`✅ ${valid.length} flashcards importados com sucesso!`);
+      this._render();
     });
 
     // ─ Simulados & Quizzes ─
@@ -1688,6 +1766,66 @@ Regras:
 - Cada questão deve ter exatamente 4 alternativas
 - answerIndex é o índice (0-3) da alternativa correta
 - As explicações devem ser didáticas e claras
+- O JSON deve ser válido e completo`;
+  }
+
+  /**
+   * Gera o prompt para criar um mapa mental via NotebookLM.
+   */
+  _buildNotebookLMMindMapPrompt(subjectName, theme, mapType = 'mind') {
+    const typeDesc = mapType === 'concept'
+      ? 'conceitual (com rótulos nas conexões)'
+      : 'mental hierárquico';
+    return `Você é um professor especialista em ${subjectName}. Crie um mapa ${typeDesc} sobre o tema: "${theme}".
+
+IMPORTANTE: Responda APENAS com o JSON abaixo, sem nenhum texto adicional antes ou depois.
+
+{
+  "nodes": [
+    {"id": "1", "text": "Conceito central", "x": 400, "y": 300, "color": "#8B5CF6"},
+    {"id": "2", "text": "Subtópico A",      "x": 200, "y": 150, "color": "#06B6D4"},
+    {"id": "3", "text": "Subtópico B",      "x": 600, "y": 150, "color": "#10B981"},
+    {"id": "4", "text": "Detalhe A1",       "x": 100, "y": 300, "color": "#F59E0B"},
+    {"id": "5", "text": "Detalhe B1",       "x": 700, "y": 300, "color": "#EF4444"}
+  ],
+  "edges": [
+    {"id": "e1", "from": "1", "to": "2", "label": ""},
+    {"id": "e2", "from": "1", "to": "3", "label": ""},
+    {"id": "e3", "from": "2", "to": "4", "label": ""},
+    {"id": "e4", "from": "3", "to": "5", "label": ""}
+  ]
+}
+
+Regras:
+- Crie entre 5 e 12 nós relevantes para o tema
+- As coordenadas x e y devem distribuir os nós harmoniosamente (canvas de 800x600)
+- Cada nó deve ter um texto curto e objetivo (máximo 4 palavras)
+- As cores devem variar entre: #8B5CF6, #06B6D4, #10B981, #F59E0B, #EF4444, #EC4899, #3B82F6
+- O JSON deve ser válido e completo`;
+  }
+
+  /**
+   * Gera o prompt para criar flashcards via NotebookLM.
+   */
+  _buildNotebookLMFlashcardPrompt(subjectName, theme, qty = 10) {
+    return `Você é um professor especialista em ${subjectName}. Crie ${qty} flashcards de memorização sobre o tema: "${theme}".
+
+IMPORTANTE: Responda APENAS com o JSON abaixo, sem nenhum texto adicional antes ou depois.
+
+{
+  "cards": [
+    {
+      "front": "O que é [conceito]?",
+      "back": "Definição completa e didática do conceito, com contexto e exemplos quando necessário."
+    }
+  ]
+}
+
+Regras:
+- Crie exatamente ${qty} flashcards
+- O campo "front" deve conter uma pergunta clara e objetiva
+- O campo "back" deve conter a resposta completa, didática e com exemplos quando útil
+- Varie os tipos de perguntas: definições, exemplos, comparações, aplicações
 - O JSON deve ser válido e completo`;
   }
 

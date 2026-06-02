@@ -60,7 +60,7 @@ class MindMapView {
             <button class="tool-btn danger" id="mm-delete-sel" title="Deletar selecionado (Del)">
               <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
             </button>
-            <button class="btn-primary btn-sm" style="background:#8B5CF6;" id="mm-ai-generate">🪄 Gerar com I.A</button>
+            <button class="btn-primary btn-sm" style="background:linear-gradient(135deg,#1a73e8,#34a853);" id="mm-ai-generate">📓 Gerar com NotebookLM</button>
             <button class="btn-primary btn-sm" id="mm-export">⬇ Exportar PNG</button>
             <div class="tool-separator"></div>
             <button class="tool-btn danger" id="mm-delete-map" title="Apagar mapa mental de vez" style="background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.25);">
@@ -249,7 +249,7 @@ class MindMapView {
     document.getElementById('mm-zoom-reset')?.addEventListener('click', () => { this._scale = 1; this._offsetX = 0; this._offsetY = 0; });
     document.getElementById('mm-delete-sel')?.addEventListener('click', () => this._deleteSelected());
     document.getElementById('mm-ai-generate')?.addEventListener('click', () => {
-      if (this._map) EventBus.emit('ui:generateAIMindMap', { mapId: this._map.id });
+      if (this._map) EventBus.emit('ui:openNotebookLMMindMapModal', { map: this._map });
     });
     document.getElementById('mm-delete-map')?.addEventListener('click', () => {
       if (this._map) EventBus.emit('ui:deleteMindMap', { mapId: this._map.id });
