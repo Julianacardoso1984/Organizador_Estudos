@@ -34,6 +34,12 @@ class EditorView {
               <span>📄</span>
               <span>Exportar Docs</span>
             </button>
+            <button class="btn-sm" id="btn-notebooklm-notes"
+              style="display:flex; align-items:center; gap:6px; font-weight:600; background:linear-gradient(135deg,#1a73e8,#34a853); color:#fff; border:none; border-radius:var(--radius-sm); padding:6px 12px; cursor:pointer;"
+              title="Gerar conteúdo de anotação com NotebookLM">
+              <svg viewBox="0 0 24 24" style="width:13px;height:13px;flex-shrink:0;"><rect width="24" height="24" rx="3" fill="rgba(255,255,255,0.25)"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+              NotebookLM
+            </button>
             <button class="btn-sm" id="btn-delete-page">🗑 Excluir</button>
           </div>
         </div>
@@ -117,6 +123,11 @@ class EditorView {
     // Google Docs export toggle
     document.getElementById('btn-export-docs')?.addEventListener('click', () => {
       EventBus.emit('ui:exportPageToGoogleDocs', { pageId: this.page.id });
+    });
+
+    // NotebookLM notes import
+    document.getElementById('btn-notebooklm-notes')?.addEventListener('click', () => {
+      EventBus.emit('ui:openNotebookLMNotesModal', { page: this.page, subject: this.subject });
     });
 
     // Slash menu items

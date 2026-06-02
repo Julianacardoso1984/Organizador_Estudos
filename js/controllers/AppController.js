@@ -271,6 +271,151 @@ class AppController {
       }
     });
 
+    // ── NotebookLM Notes Integration ────────────────────────────────────────
+
+    EventBus.on('ui:openNotebookLMNotesModal', ({ page, subject }) => {
+      const subjectName = subject?.name || 'Estudo';
+
+      this._openModal(`
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;"><rect width="24" height="24" rx="4" fill="#1a73e8"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Gerar Anotação com NotebookLM
+        </h2>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:2px 0 18px 0;line-height:1.5;">
+          Gere um resumo ou anotação no NotebookLM e importe diretamente para esta página.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#1a73e8 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #1a73e8;">
+            <span style="font-size:1.1rem;font-weight:700;color:#1a73e8;">1</span>
+            <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Defina o tema da anotação</span>
+          </div>
+          <div>
+            <label class="modal-label">Tema / Assunto</label>
+            <input id="nlm-notes-theme" class="modal-input" type="text"
+              placeholder="Ex: Revolução Industrial, Derivadas, Teoria da Relatividade..."
+              style="width:100%;" value="${page.title !== 'Sem título' ? page.title : subjectName}">
+          </div>
+          <div>
+            <label class="modal-label">Tipo de conteúdo</label>
+            <select id="nlm-notes-type" class="modal-input" style="width:100%;">
+              <option value="resumo">📋 Resumo estruturado com tópicos</option>
+              <option value="esquema">🗂️ Esquema de estudo (tópicos e subtópicos)</option>
+              <option value="conceitos">🧠 Lista de conceitos-chave com definições</option>
+              <option value="linha">📅 Linha do tempo / Sequência de eventos</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#34a853 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #34a853;">
+            <span style="font-size:1.1rem;font-weight:700;color:#34a853;">2</span>
+            <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Abra o NotebookLM e cole o prompt abaixo</span>
+          </div>
+          <div style="position:relative;">
+            <label class="modal-label">Prompt pronto para copiar 📋</label>
+            <textarea id="nlm-notes-prompt-text" class="modal-input" rows="7" readonly
+              style="font-size:0.75rem;font-family:monospace;resize:none;width:100%;color:var(--text-muted);line-height:1.5;"></textarea>
+            <button id="nlm-notes-copy-prompt" style="position:absolute;top:28px;right:8px;padding:4px 10px;font-size:0.72rem;border:1px solid var(--border);background:var(--bg-card);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);">Copiar</button>
+          </div>
+          <a href="https://notebooklm.google.com" target="_blank" rel="noopener"
+            style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;background:linear-gradient(135deg,#1a73e8,#34a853);color:#fff;border-radius:var(--radius-sm);font-weight:600;font-size:0.85rem;text-decoration:none;">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><polyline points="15 3 21 3 21 9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><line x1="10" y1="14" x2="21" y2="3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+            Abrir NotebookLM ↗
+          </a>
+        </div>
+        <div class="modal-footer" style="margin-top:20px;">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="nlm-notes-next-step" style="background:linear-gradient(135deg,#1a73e8,#34a853);">Já gerei o conteúdo → Importar</button>
+        </div>
+      `, () => {
+        const updatePrompt = () => {
+          const theme = document.getElementById('nlm-notes-theme')?.value.trim() || subjectName;
+          const type = document.getElementById('nlm-notes-type')?.value || 'resumo';
+          const ta = document.getElementById('nlm-notes-prompt-text');
+          if (ta) ta.value = this._buildNotebookLMNotesPrompt(subjectName, theme, type);
+        };
+        updatePrompt();
+        document.getElementById('nlm-notes-theme')?.addEventListener('input', updatePrompt);
+        document.getElementById('nlm-notes-type')?.addEventListener('change', updatePrompt);
+
+        document.getElementById('nlm-notes-copy-prompt')?.addEventListener('click', () => {
+          const ta = document.getElementById('nlm-notes-prompt-text');
+          if (ta) {
+            navigator.clipboard.writeText(ta.value).then(() => {
+              const btn = document.getElementById('nlm-notes-copy-prompt');
+              if (btn) { btn.textContent = '✓ Copiado!'; btn.style.color = '#10B981'; }
+              setTimeout(() => { if (btn) { btn.textContent = 'Copiar'; btn.style.color = ''; } }, 2000);
+            }).catch(() => { ta.select(); document.execCommand('copy'); });
+          }
+        });
+
+        document.getElementById('nlm-notes-next-step')?.addEventListener('click', () => {
+          const theme = document.getElementById('nlm-notes-theme')?.value.trim() || subjectName;
+          this._closeModal();
+          setTimeout(() => EventBus.emit('ui:openNotebookLMNotesImportModal', { page, theme }), 120);
+        });
+      });
+    });
+
+    EventBus.on('ui:openNotebookLMNotesImportModal', ({ page, theme }) => {
+      this._openModal(`
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;"><rect width="24" height="24" rx="4" fill="#1a73e8"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Importar Anotação do NotebookLM
+        </h2>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#34a853 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #34a853;margin-bottom:12px;">
+          <span style="font-size:1.1rem;font-weight:700;color:#34a853;">3</span>
+          <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Cole o conteúdo gerado pelo NotebookLM abaixo</span>
+        </div>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 10px 0;line-height:1.5;">
+          Cole o texto ou markdown gerado. O app vai converter automaticamente em blocos de anotação.
+          O conteúdo será <strong>adicionado ao final</strong> da página atual.
+        </p>
+        <textarea id="nlm-notes-import-text" class="modal-input" rows="12"
+          placeholder="Cole aqui o conteúdo gerado pelo NotebookLM..."
+          style="font-size:0.82rem;resize:vertical;width:100%;min-height:200px;line-height:1.6;"></textarea>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;padding:10px;background:var(--bg);border-radius:var(--radius-sm);border:1px dashed var(--border);">
+          💡 <strong style="color:var(--text);">Dica:</strong> Linhas com <code>#</code> viram títulos, linhas com <code>-</code> ou <code>•</code> viram listas, o resto vira parágrafos.
+        </div>
+        <div class="modal-footer" style="margin-top:16px;">
+          <button class="btn-ghost" id="nlm-notes-back-step">← Voltar</button>
+          <button class="btn-primary" id="nlm-notes-import-btn" style="background:linear-gradient(135deg,#1a73e8,#34a853);">✅ Adicionar à Anotação</button>
+        </div>
+      `, () => {
+        document.getElementById('nlm-notes-import-btn')?.addEventListener('click', () => {
+          const raw = document.getElementById('nlm-notes-import-text')?.value.trim();
+          if (!raw) { alert('Cole o conteúdo antes de importar.'); return; }
+          EventBus.emit('ui:importNotebookLMNotes', { pageId: page.id, raw });
+        });
+        document.getElementById('nlm-notes-back-step')?.addEventListener('click', () => {
+          this._closeModal();
+          setTimeout(() => {
+            const page2 = pageModel.getById(page.id);
+            const subject2 = this.models.subjectModel.getById(page2?.subjectId);
+            EventBus.emit('ui:openNotebookLMNotesModal', { page: page2 || page, subject: subject2 });
+          }, 120);
+        });
+        document.getElementById('nlm-notes-import-text')?.focus();
+      });
+    });
+
+    EventBus.on('ui:importNotebookLMNotes', ({ pageId, raw }) => {
+      const page = pageModel.getById(pageId);
+      if (!page) return;
+
+      // Converte o texto em blocos do editor
+      const newBlocks = this._textToEditorBlocks(raw);
+      if (newBlocks.length === 0) {
+        alert('Nenhum conteúdo válido encontrado. Verifique o texto colado.');
+        return;
+      }
+
+      // Adiciona ao final dos blocos existentes (preserva anotações anteriores)
+      const updatedBlocks = [...(page.blocks || []), ...newBlocks];
+      pageModel.update(pageId, { blocks: updatedBlocks });
+
+      this._closeModal();
+      this._toast(`✅ ${newBlocks.length} blocos adicionados à anotação!`);
+      this._render();
+    });
+
     EventBus.on('pages:updated', () => this._renderSidebar());
 
     // ─ Tasks ─
@@ -1827,6 +1972,116 @@ Regras:
 - O campo "back" deve conter a resposta completa, didática e com exemplos quando útil
 - Varie os tipos de perguntas: definições, exemplos, comparações, aplicações
 - O JSON deve ser válido e completo`;
+  }
+
+  /**
+   * Gera o prompt para criar uma anotação/resumo via NotebookLM.
+   */
+  _buildNotebookLMNotesPrompt(subjectName, theme, type = 'resumo') {
+    const typeInstructions = {
+      resumo: `Crie um RESUMO ESTRUTURADO sobre "${theme}" com os seguintes elementos:
+- Um título principal (use # no início da linha)
+- 3 a 5 seções com subtítulos (use ## no início da linha)
+- Cada seção deve ter parágrafos explicativos e listas com - para pontos importantes
+- Uma seção final de "Pontos-chave" com os conceitos mais importantes em lista`,
+
+      esquema: `Crie um ESQUEMA DE ESTUDO sobre "${theme}" com:
+- Título principal com # 
+- Tópicos principais com ##
+- Subtópicos com ###
+- Itens em listas com - (use recuo para hierarquia)
+- Seja conciso e objetivo em cada item`,
+
+      conceitos: `Crie uma LISTA DE CONCEITOS-CHAVE sobre "${theme}" com:
+- Título "Conceitos-chave: ${theme}" com #
+- Cada conceito como subtítulo com ##
+- Definição em parágrafo abaixo de cada conceito
+- Exemplo prático em cada conceito quando possível`,
+
+      linha: `Crie uma LINHA DO TEMPO / SEQUÊNCIA sobre "${theme}" com:
+- Título com #
+- Cada evento/etapa como item numerado (1. Evento - Descrição)
+- Data ou período quando relevante
+- Breve descrição de cada evento
+- Impacto ou consequência de cada etapa`
+    };
+
+    return `Você é um professor especialista em ${subjectName}. ${typeInstructions[type] || typeInstructions.resumo}
+
+FORMATAÇÃO:
+- Use # para título principal, ## para seções, ### para subseções
+- Use - para listas com marcadores
+- Use 1. para listas numeradas
+- Use > para citações ou destaques importantes
+- Seja didático e claro
+
+Escreva o conteúdo agora:`;
+  }
+
+  /**
+   * Converte texto/markdown em blocos do EditorView.
+   * Suporta: h1 (#), h2 (##), h3 (###), bullet (-/•/*), numbered (1.), quote (>), divider (---), text
+   */
+  _textToEditorBlocks(raw) {
+    const lines = raw.split('\n');
+    const blocks = [];
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+
+      // Linha vazia — ignora (não cria bloco em branco)
+      if (!line.trim()) continue;
+
+      // Divisor --- ou ===
+      if (/^[-=]{3,}$/.test(line.trim())) {
+        blocks.push({ id: _uuid ? _uuid() : Math.random().toString(36).slice(2), type: 'divider', content: '', checked: false });
+        continue;
+      }
+
+      // h1 — # Título
+      if (/^# /.test(line)) {
+        blocks.push({ id: Math.random().toString(36).slice(2), type: 'h1', content: line.replace(/^# /, '').trim(), checked: false });
+        continue;
+      }
+
+      // h2 — ## Título
+      if (/^## /.test(line)) {
+        blocks.push({ id: Math.random().toString(36).slice(2), type: 'h2', content: line.replace(/^## /, '').trim(), checked: false });
+        continue;
+      }
+
+      // h3 — ### Título
+      if (/^### /.test(line)) {
+        blocks.push({ id: Math.random().toString(36).slice(2), type: 'h3', content: line.replace(/^### /, '').trim(), checked: false });
+        continue;
+      }
+
+      // bullet — - item ou • item ou * item
+      if (/^[-•*] /.test(line.trim())) {
+        blocks.push({ id: Math.random().toString(36).slice(2), type: 'bullet', content: line.trim().replace(/^[-•*] /, '').trim(), checked: false });
+        continue;
+      }
+
+      // numbered — 1. item ou 1) item
+      if (/^\d+[.)]\s/.test(line.trim())) {
+        blocks.push({ id: Math.random().toString(36).slice(2), type: 'numbered', content: line.trim().replace(/^\d+[.)]\s/, '').trim(), checked: false });
+        continue;
+      }
+
+      // quote — > texto
+      if (/^> /.test(line)) {
+        blocks.push({ id: Math.random().toString(36).slice(2), type: 'quote', content: line.replace(/^> /, '').trim(), checked: false });
+        continue;
+      }
+
+      // Texto normal (incluindo linhas indentadas como subtópicos)
+      const content = line.replace(/^\s+/, '').trim();
+      if (content) {
+        blocks.push({ id: Math.random().toString(36).slice(2), type: 'text', content, checked: false });
+      }
+    }
+
+    return blocks;
   }
 
   _blobToBase64(blob) {
