@@ -339,8 +339,8 @@ class MindMapView {
   }
 
   _drawGrid(ctx, W, H) {
-    const isDark = !document.body.classList.contains('light');
-    const dotColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
+    // Fundo sempre claro — pontos escuros
+    const dotColor = 'rgba(0,0,0,0.07)';
     const spacing = 28;
 
     // Adjust for pan/zoom so dots stay aligned to world
@@ -503,9 +503,9 @@ class MindMapView {
    * Sem caixa de fundo visível.
    */
   _drawLeafNode(ctx, node, color, w, h, isSelected, isHovered) {
-    const text     = node.text || 'Nó';
-    const isDark   = !document.body.classList.contains('light');
-    const textColor = isDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.82)';
+    const text      = node.text || 'Nó';
+    // Canvas sempre com fundo claro — texto sempre escuro
+    const textColor = 'rgba(0,0,0,0.78)';
 
     ctx.save();
 
@@ -1176,13 +1176,12 @@ class MindMapView {
     tctx.scale(sc, sc);
     tctx.translate(-minX, -minY);
 
-    // Background
-    const isDark = !document.body.classList.contains('light');
-    tctx.fillStyle = isDark ? '#111215' : '#f5f6fa';
+    // Background — sempre claro
+    tctx.fillStyle = '#f7f8fa';
     tctx.fillRect(minX, minY, W, H);
 
-    // Dot grid
-    tctx.fillStyle = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
+    // Dot grid — pontos escuros no fundo claro
+    tctx.fillStyle = 'rgba(0,0,0,0.07)';
     for (let gx = minX; gx < maxX; gx += 28) {
       for (let gy = minY; gy < maxY; gy += 28) {
         tctx.beginPath();

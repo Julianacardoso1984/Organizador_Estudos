@@ -222,12 +222,8 @@
   position: relative;
   overflow: hidden;
   min-height: 0;
-  /* Clean MindMeister-style background */
-  background: var(--mm-bg, #111215);
-}
-
-body.light .mindmap-canvas-wrap {
-  background: var(--mm-bg-light, #f5f6fa);
+  /* Sempre fundo claro — estilo MindMeister (independente do tema) */
+  background: #f7f8fa;
 }
 
 #mm-canvas {
