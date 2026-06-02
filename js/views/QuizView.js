@@ -45,8 +45,8 @@ class QuizView {
             </h1>
             <p style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-muted);">Teste seus conhecimentos de forma ativa e mensure seu progresso.</p>
           </div>
-          <button class="btn-primary" id="btn-trigger-ai-quiz" style="display:flex; align-items:center; gap:8px; font-weight:600; padding:10px 16px;">
-            <span>🪄</span> Gerar com I.A
+          <button class="btn-primary" id="btn-trigger-notebooklm-quiz" style="display:flex; align-items:center; gap:8px; font-weight:600; padding:10px 16px; background:linear-gradient(135deg,#1a73e8,#34a853);">
+            <span>📓</span> Gerar com NotebookLM
           </button>
         </div>
 
@@ -283,58 +283,9 @@ class QuizView {
       });
     });
 
-    // Gerar com I.A modal trigger
-    this.el.querySelector('#btn-trigger-ai-quiz')?.addEventListener('click', () => {
-      const materialDropdown = materials.length > 0 
-        ? `
-          <div>
-            <label class="modal-label">📚 Basear no material de estudo (Opcional)</label>
-            <select id="modal-quiz-material" class="modal-input" style="width:100%; border-radius:var(--radius-sm); font-size:0.85rem; padding:8px;">
-              <option value="">-- Nenhum material (Gerar com base no tema geral) --</option>
-              ${materials.map(m => `<option value="${m.id}">${m.emoji} ${m.name}</option>`).join('')}
-            </select>
-          </div>
-        `
-        : '';
-
-      EventBus.emit('ui:openModalQuiz', {
-        html: `
-          <h2>🪄 Gerador de Simulados por I.A</h2>
-          <p style="font-size:0.78rem; color:var(--text-muted); margin:4px 0 16px 0;">Defina o tema desejado para a I.A gerar 5 perguntas cognitivas específicas.</p>
-          <div style="display:flex; flex-direction:column; gap:16px; margin: 16px 0;">
-            <div>
-              <label class="modal-label">Tema do Simulado</label>
-              <input id="modal-quiz-theme" class="modal-input" type="text" placeholder="Ex: Programação Orientada a Objetos, Guerra Fria, Anatomia Humana..." style="width:100%;">
-            </div>
-            ${materialDropdown}
-            <div style="font-size:0.75rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:12px; margin-top:8px;">
-              💡 <em>Caso não possua chave Gemini API configurada no aplicativo, utilizaremos nosso Simulador Cognitivo local para gerar um quiz estruturado instantâneo!</em>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-ghost" id="modal-cancel">Cancelar</button>
-            <button class="btn-primary" id="modal-generate-quiz">Gerar Simulado</button>
-          </div>
-        `,
-        callback: () => {
-          document.getElementById('modal-generate-quiz')?.addEventListener('click', () => {
-            const theme = document.getElementById('modal-quiz-theme')?.value.trim();
-            const materialId = document.getElementById('modal-quiz-material')?.value || null;
-
-            if (!theme) {
-              alert('Por favor, defina um tema para o seu simulado.');
-              return;
-            }
-
-            EventBus.emit('ui:generateAIQuiz', { 
-              subjectId: subject.id, 
-              theme, 
-              materialId 
-            });
-          });
-          document.getElementById('modal-quiz-theme')?.focus();
-        }
-      });
+    // Gerar com NotebookLM — modal de 2 etapas
+    this.el.querySelector('#btn-trigger-notebooklm-quiz')?.addEventListener('click', () => {
+      EventBus.emit('ui:openNotebookLMQuizModal', { subject });
     });
   }
 

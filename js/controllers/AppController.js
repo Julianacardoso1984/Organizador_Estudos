@@ -951,41 +951,191 @@ class AppController {
       quizModel.saveScore(quizId, score);
     });
 
-    EventBus.on('ui:generateAIQuiz', async ({ subjectId, theme, materialId }) => {
-      const { quizModel, materialModel, subjectModel } = this.models;
-      const subject = subjectModel.getById(subjectId);
+    // ── NotebookLM Quiz Integration ──────────────────────────────────────────
 
-      this._closeModal();
-      this._toast('🪄 Gerando simulado por I.A...');
+    EventBus.on('ui:openNotebookLMQuizModal', ({ subject }) => {
+      // Etapa 1: Exibir prompt copiável + link para NotebookLM
+      this._openModal(`
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;"><rect width="24" height="24" rx="4" fill="#1a73e8"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Gerar Simulado com NotebookLM
+        </h2>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:2px 0 18px 0;line-height:1.5;">
+          O NotebookLM é um assistente de estudos do Google. Siga os passos abaixo para gerar um simulado personalizado.
+        </p>
 
-      let materialFile = null;
-      if (materialId) {
-        materialFile = materialModel.getById(materialId);
-      }
+        <!-- PASSO 1 -->
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#1a73e8 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #1a73e8;">
+            <span style="font-size:1.1rem;font-weight:700;color:#1a73e8;">1</span>
+            <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Defina o tema do simulado</span>
+          </div>
+          <div>
+            <label class="modal-label">Tema / Assunto</label>
+            <input id="nlm-quiz-theme" class="modal-input" type="text"
+              placeholder="Ex: Fotossíntese, Segunda Guerra Mundial, Álgebra Linear..."
+              style="width:100%;" value="${subject.name}">
+          </div>
 
-      const apiKey = localStorage.getItem('gemini_api_key') || '';
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#34a853 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #34a853;">
+            <span style="font-size:1.1rem;font-weight:700;color:#34a853;">2</span>
+            <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Abra o NotebookLM e cole o prompt abaixo</span>
+          </div>
+
+          <div style="position:relative;">
+            <label class="modal-label">Prompt pronto para copiar 📋</label>
+            <textarea id="nlm-prompt-text" class="modal-input" rows="7" readonly
+              style="font-size:0.75rem;font-family:monospace;resize:none;width:100%;color:var(--text-muted);line-height:1.5;cursor:text;"
+              ></textarea>
+            <button id="nlm-copy-prompt" style="position:absolute;top:28px;right:8px;padding:4px 10px;font-size:0.72rem;border:1px solid var(--border);background:var(--bg-card);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);">
+              Copiar
+            </button>
+          </div>
+
+          <a id="nlm-open-link" href="https://notebooklm.google.com" target="_blank" rel="noopener"
+            style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;background:linear-gradient(135deg,#1a73e8,#34a853);color:#fff;border-radius:var(--radius-sm);font-weight:600;font-size:0.85rem;text-decoration:none;transition:opacity 0.2s;">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><polyline points="15 3 21 3 21 9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><line x1="10" y1="14" x2="21" y2="3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+            Abrir NotebookLM ↗
+          </a>
+        </div>
+
+        <div class="modal-footer" style="margin-top:20px;">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="nlm-next-step"
+            style="background:linear-gradient(135deg,#1a73e8,#34a853);">
+            Já gerei o quiz → Importar
+          </button>
+        </div>
+      `, () => {
+        // Preenche o textarea com o prompt gerado dinamicamente
+        const updatePrompt = () => {
+          const theme = document.getElementById('nlm-quiz-theme')?.value.trim() || subject.name;
+          const prompt = this._buildNotebookLMPrompt(subject.name, theme);
+          const ta = document.getElementById('nlm-prompt-text');
+          if (ta) ta.value = prompt;
+        };
+        updatePrompt();
+        document.getElementById('nlm-quiz-theme')?.addEventListener('input', updatePrompt);
+
+        // Copiar prompt
+        document.getElementById('nlm-copy-prompt')?.addEventListener('click', () => {
+          const ta = document.getElementById('nlm-prompt-text');
+          if (ta) {
+            navigator.clipboard.writeText(ta.value).then(() => {
+              const btn = document.getElementById('nlm-copy-prompt');
+              if (btn) { btn.textContent = '✓ Copiado!'; btn.style.color = '#10B981'; }
+              setTimeout(() => { if (btn) { btn.textContent = 'Copiar'; btn.style.color = ''; } }, 2000);
+            }).catch(() => { ta.select(); document.execCommand('copy'); });
+          }
+        });
+
+        // Ir para Etapa 2 — Importar JSON
+        document.getElementById('nlm-next-step')?.addEventListener('click', () => {
+          const theme = document.getElementById('nlm-quiz-theme')?.value.trim() || subject.name;
+          this._closeModal();
+          // Pequeno delay para o modal fechar antes de reabrir
+          setTimeout(() => {
+            EventBus.emit('ui:openNotebookLMImportModal', { subject, theme });
+          }, 120);
+        });
+      });
+    });
+
+    EventBus.on('ui:openNotebookLMImportModal', ({ subject, theme }) => {
+      this._openModal(`
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;"><rect width="24" height="24" rx="4" fill="#1a73e8"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Importar Quiz do NotebookLM
+        </h2>
+
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#34a853 8%,var(--bg));border-radius:var(--radius-sm);border-left:3px solid #34a853;margin-bottom:4px;">
+          <span style="font-size:1.1rem;font-weight:700;color:#34a853;">3</span>
+          <span style="font-size:0.82rem;color:var(--text);font-weight:600;">Cole o JSON gerado pelo NotebookLM abaixo</span>
+        </div>
+
+        <p style="font-size:0.75rem;color:var(--text-muted);margin:8px 0 10px 0;line-height:1.5;">
+          No NotebookLM, copie o bloco JSON completo da resposta e cole aqui. O app vai importar as questões automaticamente.
+        </p>
+
+        <textarea id="nlm-import-json" class="modal-input" rows="10"
+          placeholder='Cole aqui o JSON gerado pelo NotebookLM...'
+          style="font-size:0.75rem;font-family:monospace;resize:vertical;width:100%;min-height:180px;line-height:1.5;"></textarea>
+
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;padding:10px;background:var(--bg);border-radius:var(--radius-sm);border:1px dashed var(--border);">
+          <strong style="color:var(--text);">Formato esperado:</strong><br>
+          <code style="font-size:0.7rem;">{"title":"...","questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0,"explanation":"..."}]}</code>
+        </div>
+
+        <div class="modal-footer" style="margin-top:16px;">
+          <button class="btn-ghost" id="nlm-back-step">← Voltar</button>
+          <button class="btn-primary" id="nlm-import-btn"
+            style="background:linear-gradient(135deg,#1a73e8,#34a853);">
+            ✅ Importar Simulado
+          </button>
+        </div>
+      `, () => {
+        document.getElementById('nlm-import-btn')?.addEventListener('click', () => {
+          const raw = document.getElementById('nlm-import-json')?.value.trim();
+          if (!raw) {
+            alert('Por favor, cole o JSON gerado pelo NotebookLM antes de importar.');
+            return;
+          }
+          EventBus.emit('ui:importNotebookLMQuiz', { subjectId: subject.id, theme, raw });
+        });
+
+        document.getElementById('nlm-back-step')?.addEventListener('click', () => {
+          this._closeModal();
+          setTimeout(() => EventBus.emit('ui:openNotebookLMQuizModal', { subject }), 120);
+        });
+
+        document.getElementById('nlm-import-json')?.focus();
+      });
+    });
+
+    EventBus.on('ui:importNotebookLMQuiz', ({ subjectId, theme, raw }) => {
+      const { quizModel } = this.models;
       let quizData = null;
 
-      if (apiKey) {
-        try {
-          quizData = await this._fetchGeminiQuiz(theme, apiKey, materialFile);
-        } catch (e) {
-          console.warn('Erro ao chamar API Gemini para Quiz:', e);
+      try {
+        // Tenta parsear o JSON diretamente
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+          quizData = parsed;
+        } else {
+          throw new Error('Estrutura de JSON inválida.');
         }
+      } catch (e) {
+        alert(
+          '❌ O JSON colado não é válido ou não segue o formato esperado.\n\n' +
+          'Certifique-se de que o NotebookLM gerou a resposta no formato JSON e copie o bloco completo, incluindo as chaves { }.\n\n' +
+          'Dica: no NotebookLM, peça para ele "responder apenas com o JSON, sem texto adicional".' 
+        );
+        return;
       }
 
-      if (!quizData) {
-        quizData = this._generateLocalMockQuiz(theme);
-        this._toast('✨ Simulado gerado localmente! Adicione chave Gemini para I.A real.');
+      // Valida cada questão
+      const validQuestions = (quizData.questions || []).filter(q =>
+        q &&
+        typeof q.question === 'string' &&
+        Array.isArray(q.options) && q.options.length >= 2 &&
+        typeof q.answerIndex === 'number' &&
+        q.answerIndex >= 0 && q.answerIndex < q.options.length
+      );
+
+      if (validQuestions.length === 0) {
+        alert('Nenhuma questão válida encontrada no JSON. Verifique se o formato está correto.');
+        return;
       }
 
-      if (quizData && quizData.questions) {
-        quizModel.create(subjectId, `Simulado I.A: ${theme}`, quizData.questions);
-        this._toast('✅ Simulado gerado com sucesso!');
-        this._render();
-      } else {
-        alert('Não foi possível gerar o simulado. Tente novamente.');
-      }
+      // Garante campo explanation em todas as questões
+      validQuestions.forEach(q => { if (!q.explanation) q.explanation = ''; });
+
+      const title = quizData.title || `Simulado NotebookLM: ${theme}`;
+      quizModel.create(subjectId, title, validQuestions);
+
+      this._closeModal();
+      this._toast(`✅ Simulado importado com ${validQuestions.length} questões!`);
+      this._render();
     });
 
     // ─ Notas por Voz ─
@@ -1510,6 +1660,35 @@ class AppController {
     document.body.appendChild(t);
     setTimeout(() => t.classList.add('show'), 10);
     setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+  }
+
+  /**
+   * Gera o prompt de instrução que o usuário deve colar no NotebookLM
+   * para obter um quiz no formato JSON correto.
+   */
+  _buildNotebookLMPrompt(subjectName, theme) {
+    return `Você é um professor especialista em ${subjectName}. Gere um simulado de estudo com 5 questões objetivas sobre o tema: "${theme}".
+
+IMPORTANTE: Responda APENAS com o JSON abaixo, sem nenhum texto adicional antes ou depois.
+
+{
+  "title": "Simulado: ${theme}",
+  "questions": [
+    {
+      "question": "Texto da pergunta aqui?",
+      "options": ["Alternativa A", "Alternativa B", "Alternativa C", "Alternativa D"],
+      "answerIndex": 0,
+      "explanation": "Explicação detalhada do porquê a resposta correta é a Alternativa A."
+    }
+  ]
+}
+
+Regras:
+- Gere exatamente 5 questões
+- Cada questão deve ter exatamente 4 alternativas
+- answerIndex é o índice (0-3) da alternativa correta
+- As explicações devem ser didáticas e claras
+- O JSON deve ser válido e completo`;
   }
 
   _blobToBase64(blob) {
