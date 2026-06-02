@@ -252,16 +252,31 @@ class MindMapView {
 
   /** Returns visual width/height for a node at a given depth. */
   _nodeDims(node, depth) {
-    if (depth === 0) return { w: node.width || 180, h: 54 };
-    if (depth === 1) return { w: node.width || 148, h: 40 };
-    // Leaf: measure text
     const text = node.text || 'Nó';
-    this._ctx.save();
-    this._ctx.font = '500 13px "Inter", system-ui, sans-serif';
-    const tw = this._ctx.measureText(text).width;
-    this._ctx.restore();
+    const ctx  = this._ctx;
+
+    ctx.save();
+    if (depth === 0) {
+      // Raiz: fonte bold 15px, padding generoso
+      ctx.font = '700 15px "Inter", system-ui, sans-serif';
+      const tw = ctx.measureText(text).width;
+      ctx.restore();
+      return { w: Math.min(Math.max(tw + 48, 120), 320), h: 54 };
+    }
+    if (depth === 1) {
+      // Galho: fonte semibold 13px, padding médio
+      ctx.font = '600 13px "Inter", system-ui, sans-serif';
+      const tw = ctx.measureText(text).width;
+      ctx.restore();
+      return { w: Math.min(Math.max(tw + 36, 90), 280), h: 40 };
+    }
+    // Folha (depth 2+): apenas texto + sublinhado
+    ctx.font = '500 13px "Inter", system-ui, sans-serif';
+    const tw = ctx.measureText(text).width;
+    ctx.restore();
     return { w: Math.max(tw + 20, 60), h: 32 };
   }
+
 
   // ── Draw ──────────────────────────────────────────────────────────────────
 
