@@ -38,22 +38,22 @@
 
 /* ── Light Theme ─────────────────────────────────────────────────────────── */
 body.light {
-  --bg-overlay:   rgba(249, 250, 251, 0.88);
-  --bg:           #F9FAFB;
+  --bg-overlay:   rgba(232, 234, 238, 0.90);
+  --bg:           #E8EAEE;
   --bg-2:         #FFFFFF;
-  --bg-3:         #F3F4F6;
-  --bg-hover:     rgba(0, 0, 0, 0.04);
-  --bg-active:    rgba(0, 0, 0, 0.07);
-  --sidebar-bg:   rgba(249, 250, 251, 0.7);
-  --border:       rgba(0, 0, 0, 0.08);
-  --border-light: rgba(0, 0, 0, 0.12);
+  --bg-3:         #F0F1F4;
+  --bg-hover:     rgba(0, 0, 0, 0.05);
+  --bg-active:    rgba(0, 0, 0, 0.09);
+  --sidebar-bg:   rgba(232, 234, 238, 0.80);
+  --border:       rgba(0, 0, 0, 0.09);
+  --border-light: rgba(0, 0, 0, 0.14);
 
   --text:         rgba(0, 0, 0, 0.85);
   --text-muted:   rgba(0, 0, 0, 0.55);
   --text-dim:     rgba(0, 0, 0, 0.35);
   --text-inv:     #ffffff;
 
-  --shadow-sm:    0 1px 3px rgba(0,0,0,0.06);
-  --shadow:       0 6px 24px rgba(0,0,0,0.08);
-  --shadow-lg:    0 12px 40px rgba(0,0,0,0.12);
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.08);
+  --shadow:       0 6px 24px rgba(0,0,0,0.10);
+  --shadow-lg:    0 12px 40px rgba(0,0,0,0.15);
 }
