@@ -421,6 +421,147 @@ class AppController {
     // ─ Tasks ─
     EventBus.on('ui:newTask', ({ subjectId }) => this._showTaskModal(subjectId));
 
+    // ── Gerar Tarefas a partir de Anotações ─────────────────────────────────
+    EventBus.on('ui:generateTasksFromPage', ({ page, subject }) => {
+      if (!page?.blocks?.length) {
+        alert('Esta anotação está vazia. Adicione conteúdo antes de gerar tarefas.');
+        return;
+      }
+
+      // Verbos de ação em português que indicam uma tarefa
+      const ACTION_VERBS = /\b(estudar|revisar|ler|resolver|fazer|praticar|completar|terminar|entregar|pesquisar|analisar|escrever|preparar|exercitar|treinar|corrigir|rever|aprender|memorizar|calcular|elaborar|criar|produzir|organizar|planejar|assistir|ouvir|baixar|imprimir|resumir|listar|formular|responder|verificar)\b/i;
+
+      const extracted = [];
+      let currentHeading = '';
+
+      page.blocks.forEach(block => {
+        const text = (block.content || '').trim();
+        if (!text && block.type !== 'checkbox') return;
+
+        // Headings definem o contexto dos blocos seguintes
+        if (['h1','h2','h3'].includes(block.type)) {
+          currentHeading = text;
+          return;
+        }
+
+        // Checkboxes não marcados → tarefa direta (alta confiança)
+        if (block.type === 'checkbox' && !block.checked && text) {
+          extracted.push({ title: text, context: currentHeading, source: 'checkbox', priority: 'medium', selected: true });
+          return;
+        }
+
+        // Bullets / numbered com verbo de ação → tarefa provável
+        if (['bullet','numbered'].includes(block.type) && ACTION_VERBS.test(text)) {
+          extracted.push({ title: text, context: currentHeading, source: 'bullet', priority: 'medium', selected: true });
+          return;
+        }
+
+        // Parágrafos curtos com verbo de ação → tarefa possível (desmarcada por padrão)
+        if (block.type === 'text' && text.length < 120 && ACTION_VERBS.test(text)) {
+          extracted.push({ title: text, context: currentHeading, source: 'text', priority: 'low', selected: false });
+        }
+      });
+
+      if (extracted.length === 0) {
+        alert('Nenhuma tarefa foi identificada nesta anotação.\n\nDica: Use checkboxes (☑) ou bullets começando com verbos de ação como "Estudar", "Revisar", "Fazer".');
+        return;
+      }
+
+      const subjectColor = subject?.color || '#8B5CF6';
+
+      this._openModal(`
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Tarefas Extraídas da Anotação
+        </h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:4px 0 16px;line-height:1.5;">
+          ${extracted.length} tarefa${extracted.length !== 1 ? 's' : ''} identificada${extracted.length !== 1 ? 's' : ''} em
+          <strong>"${page.title}"</strong>. Marque as que deseja criar:
+        </p>
+        <div id="gen-tasks-list" style="display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow-y:auto;padding-right:4px;margin-bottom:16px;">
+          ${extracted.map((item, i) => `
+            <div class="gen-task-row" data-idx="${i}"
+              style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
+                border-radius:var(--radius-sm);border:1px solid var(--border);
+                background:${item.selected ? 'color-mix(in srgb,' + subjectColor + ' 6%,var(--bg-3))' : 'var(--bg-3)'};
+                transition:background .15s,border-color .15s;">
+              <input type="checkbox" class="gen-task-cb" data-idx="${i}"
+                ${item.selected ? 'checked' : ''}
+                style="margin-top:3px;accent-color:var(--accent);flex-shrink:0;width:15px;height:15px;">
+              <div style="flex:1;min-width:0;">
+                ${item.context ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📂 ' + item.context + '</div>' : ''}
+                <input type="text" class="gen-task-title modal-input" data-idx="${i}"
+                  value="${item.title.replace(/"/g,'&quot;')}"
+                  style="width:100%;margin:0;padding:4px 8px;font-size:0.83rem;font-weight:500;">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+                <select class="gen-task-priority" data-idx="${i}"
+                  style="padding:3px 6px;font-size:0.72rem;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;">
+                  <option value="low"    ${item.priority === 'low'    ? 'selected' : ''}>🟢 Baixa</option>
+                  <option value="medium" ${item.priority === 'medium' ? 'selected' : ''}>🟡 Média</option>
+                  <option value="high"   ${item.priority === 'high'   ? 'selected' : ''}>🔴 Alta</option>
+                </select>
+                <span style="font-size:0.65rem;color:var(--text-dim);text-align:center;">
+                  ${item.source === 'checkbox' ? '☑ checkbox' : item.source === 'bullet' ? '• bullet' : '¶ texto'}
+                </span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-3);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:4px;">
+          <label style="font-size:0.8rem;font-weight:600;white-space:nowrap;">📅 Prazo (opcional):</label>
+          <input type="date" id="gen-task-due" class="modal-input" style="margin:0;padding:4px 10px;font-size:0.82rem;flex:1;">
+          <span style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">aplicar a todas</span>
+        </div>
+        <div class="modal-footer" style="margin-top:16px;">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-ghost" id="gen-tasks-select-all" style="font-size:0.8rem;">Selecionar Tudo</button>
+          <button class="btn-primary" id="gen-tasks-confirm">✅ Criar Tarefas Selecionadas</button>
+        </div>
+      `, () => {
+        const updateRowStyle = (cb) => {
+          const row = document.querySelector('.gen-task-row[data-idx="' + cb.dataset.idx + '"]');
+          if (row) {
+            row.style.background  = cb.checked ? 'color-mix(in srgb,' + subjectColor + ' 6%,var(--bg-3))' : 'var(--bg-3)';
+            row.style.borderColor = cb.checked ? 'color-mix(in srgb,' + subjectColor + ' 25%,var(--border))' : 'var(--border)';
+          }
+        };
+        document.querySelectorAll('.gen-task-cb').forEach(cb => {
+          updateRowStyle(cb);
+          cb.addEventListener('change', () => updateRowStyle(cb));
+        });
+        document.getElementById('gen-tasks-select-all')?.addEventListener('click', () => {
+          const cbs = document.querySelectorAll('.gen-task-cb');
+          const allChecked = [...cbs].every(cb => cb.checked);
+          cbs.forEach(cb => { cb.checked = !allChecked; updateRowStyle(cb); });
+        });
+        document.getElementById('gen-tasks-confirm')?.addEventListener('click', () => {
+          const dueDate = document.getElementById('gen-task-due')?.value || null;
+          let count = 0;
+          document.querySelectorAll('.gen-task-row').forEach(row => {
+            const cb = row.querySelector('.gen-task-cb');
+            if (!cb?.checked) return;
+            const title = row.querySelector('.gen-task-title')?.value.trim();
+            if (!title) return;
+            const priority = row.querySelector('.gen-task-priority')?.value || 'medium';
+            const idx = row.dataset.idx;
+            taskModel.create(subject?.id || null, title, {
+              description: extracted[idx]?.context ? 'Contexto: ' + extracted[idx].context : '',
+              priority,
+              dueDate
+            });
+            count++;
+          });
+          this._closeModal();
+          this._toast(count > 0
+            ? '✅ ' + count + ' tarefa' + (count !== 1 ? 's' : '') + ' criada' + (count !== 1 ? 's' : '') + ' com sucesso!'
+            : 'Nenhuma tarefa marcada para criação.');
+          if (count > 0) this._render();
+        });
+      });
+    });
+
+
     EventBus.on('task:cycleStatus', ({ taskId }) => {
       const t = taskModel.getById(taskId);
       if (!t) return;

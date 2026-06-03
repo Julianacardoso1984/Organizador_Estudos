@@ -40,6 +40,14 @@ class EditorView {
               <svg viewBox="0 0 24 24" style="width:13px;height:13px;flex-shrink:0;"><rect width="24" height="24" rx="3" fill="rgba(255,255,255,0.25)"/><path d="M6 8h12M6 12h8M6 16h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
               NotebookLM
             </button>
+            <button class="btn-sm" id="btn-generate-tasks"
+              style="display:flex; align-items:center; gap:6px; font-weight:600; background:linear-gradient(135deg,#8B5CF6,#06B6D4); color:#fff; border:none; border-radius:var(--radius-sm); padding:6px 12px; cursor:pointer;"
+              title="Gerar tarefas automaticamente a partir desta anotação">
+              <svg viewBox="0 0 24 24" style="width:13px;height:13px;flex-shrink:0;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+              Gerar Tarefas
+            </button>
             <button class="btn-sm" id="btn-delete-page">🗑 Excluir</button>
           </div>
         </div>
@@ -128,6 +136,11 @@ class EditorView {
     // NotebookLM notes import
     document.getElementById('btn-notebooklm-notes')?.addEventListener('click', () => {
       EventBus.emit('ui:openNotebookLMNotesModal', { page: this.page, subject: this.subject });
+    });
+
+    // Generate tasks from this page's content
+    document.getElementById('btn-generate-tasks')?.addEventListener('click', () => {
+      EventBus.emit('ui:generateTasksFromPage', { page: this.page, subject: this.subject });
     });
 
     // Slash menu items
