@@ -438,9 +438,11 @@ class AppController {
         const text = (block.content || '').trim();
         if (!text && block.type !== 'checkbox') return;
 
-        // Headings definem o contexto dos blocos seguintes
+        // Títulos (h1/h2/h3) → tarefa direta (selecionada por padrão)
         if (['h1','h2','h3'].includes(block.type)) {
-          currentHeading = text;
+          const priority = block.type === 'h1' ? 'high' : block.type === 'h2' ? 'medium' : 'low';
+          extracted.push({ title: text, context: '', source: block.type, priority, selected: true });
+          currentHeading = text;  // continua servindo de contexto para os blocos seguintes
           return;
         }
 
@@ -463,7 +465,7 @@ class AppController {
       });
 
       if (extracted.length === 0) {
-        alert('Nenhuma tarefa foi identificada nesta anotação.\n\nDica: Use checkboxes (☑) ou bullets começando com verbos de ação como "Estudar", "Revisar", "Fazer".');
+        alert('Nenhuma tarefa foi identificada nesta anotação.\n\nDica: Adicione títulos (H1, H2, H3), checkboxes (☑) ou bullets com verbos de ação como "Estudar", "Revisar", "Fazer".');
         return;
       }
 
@@ -502,7 +504,7 @@ class AppController {
                   <option value="high"   ${item.priority === 'high'   ? 'selected' : ''}>🔴 Alta</option>
                 </select>
                 <span style="font-size:0.65rem;color:var(--text-dim);text-align:center;">
-                  ${item.source === 'checkbox' ? '☑ checkbox' : item.source === 'bullet' ? '• bullet' : '¶ texto'}
+                  ${item.source === 'h1' ? '🔷 H1' : item.source === 'h2' ? '🔶 H2' : item.source === 'h3' ? '🔸 H3' : item.source === 'checkbox' ? '☑ checkbox' : item.source === 'bullet' ? '• bullet' : '¶ texto'}
                 </span>
               </div>
             </div>
