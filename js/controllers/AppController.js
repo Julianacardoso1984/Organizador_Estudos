@@ -470,27 +470,27 @@ class AppController {
           <strong>"${page.title}"</strong>. Marque os que deseja adicionar:
         </p>
         <div id="gen-topics-list" style="display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow-y:auto;padding-right:4px;margin-bottom:16px;">
-          ${extracted.map((item, i) => \`
-            <div class="gen-topic-row" data-idx="\${i}"
+          ${extracted.map((item, i) => `
+            <div class="gen-topic-row" data-idx="${i}"
               style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
                 border-radius:var(--radius-sm);border:1px solid var(--border);
-                background:\${item.selected ? 'color-mix(in srgb,' + subjectColor + ' 6%,var(--bg-3))' : 'var(--bg-3)'};
+                background:${item.selected ? 'color-mix(in srgb,' + subjectColor + ' 6%,var(--bg-3))' : 'var(--bg-3)'};
                 transition:background .15s,border-color .15s;">
-              <input type="checkbox" class="gen-topic-cb" data-idx="\${i}"
-                \${item.selected ? 'checked' : ''}
+              <input type="checkbox" class="gen-topic-cb" data-idx="${i}"
+                ${item.selected ? 'checked' : ''}
                 style="margin-top:3px;accent-color:var(--accent);flex-shrink:0;width:15px;height:15px;">
               <div style="flex:1;min-width:0;">
-                <input type="text" class="gen-topic-title modal-input" data-idx="\${i}"
-                  value="\${item.title.replace(/"/g,'&quot;')}"
+                <input type="text" class="gen-topic-title modal-input" data-idx="${i}"
+                  value="${item.title.replace(/"/g,'&quot;')}"
                   style="width:100%;margin:0;padding:4px 8px;font-size:0.83rem;font-weight:500;">
               </div>
               <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;justify-content:center;">
                 <span style="font-size:0.75rem;color:var(--text-dim);text-align:center;padding:4px 8px;background:var(--bg);border-radius:4px;border:1px solid var(--border);">
-                  \${item.source === 'h1' ? '🔷 H1' : item.source === 'h2' ? '🔶 H2' : item.source === 'h3' ? '🔸 H3' : '• item'}
+                  ${item.source === 'h1' ? '🔷 H1' : item.source === 'h2' ? '🔶 H2' : item.source === 'h3' ? '🔸 H3' : '• item'}
                 </span>
               </div>
             </div>
-          \`).join('')}
+          `).join('')}
         </div>
         <div class="modal-footer" style="margin-top:16px;">
           <button class="btn-ghost" id="modal-cancel">Cancelar</button>
