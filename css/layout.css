@@ -370,15 +370,15 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
   border: 1px dashed var(--border);
   background: none;
   color: var(--text-dim);
   cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition), background var(--transition), border-color var(--transition);
+  opacity: 0.45;
+  transition: opacity var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
   flex-shrink: 0;
 }
 .sched-day-row:hover .sched-add-btn { opacity: 1; }
@@ -386,6 +386,7 @@ body {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-color: var(--accent);
   color: var(--accent);
+  opacity: 1;
 }
 
 /* Ocultar cronograma na sidebar colapsada */
