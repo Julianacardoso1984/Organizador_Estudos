@@ -20,10 +20,16 @@ class ResourcesView {
         
         <div class="dashboard-columns" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; align-items: start;">
           <div class="resource-card" style="background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm);">
-            <h2 style="font-size: 1.1rem; margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
-              <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              Meu Cronograma
-            </h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+              <h2 style="font-size: 1.1rem; margin:0; display: flex; align-items: center; gap: 8px;">
+                <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Meu Cronograma
+              </h2>
+              <button class="btn-primary" id="res-btn-auto-schedule" style="font-size:0.76rem;padding:5px 12px;display:flex;align-items:center;gap:6px;">
+                <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z"/></svg>
+                Gerar Automaticamente
+              </button>
+            </div>
             <div class="sidebar-schedule-body">
               ${this._renderScheduleSection(subjects, schedule)}
             </div>
@@ -147,6 +153,10 @@ class ResourcesView {
   }
 
   _bindEvents() {
+    document.getElementById('res-btn-auto-schedule')?.addEventListener('click', () =>
+      EventBus.emit('ui:autoFillSchedule')
+    );
+
     this.el.querySelectorAll('.res-btn-add-schedule').forEach(btn => {
       btn.addEventListener('click', () => EventBus.emit('ui:addScheduleSubject', { day: btn.dataset.day }));
     });

@@ -659,6 +659,189 @@ class AppController {
       this._render();
     });
 
+    // ─ Auto-fill Schedule ─
+    EventBus.on('ui:autoFillSchedule', () => {
+      const subjects = subjectModel.getAll();
+      if (subjects.length === 0) {
+        alert('Crie pelo menos uma matéria antes de gerar o cronograma automaticamente.');
+        return;
+      }
+
+      const allDays = [
+        { key: 'mon', label: 'Segunda-feira' },
+        { key: 'tue', label: 'Terça-feira'   },
+        { key: 'wed', label: 'Quarta-feira'  },
+        { key: 'thu', label: 'Quinta-feira'  },
+        { key: 'fri', label: 'Sexta-feira'   },
+        { key: 'sat', label: 'Sábado'        },
+        { key: 'sun', label: 'Domingo'       },
+      ];
+      // Default: Mon–Fri checked
+      const defaultDays = new Set(['mon','tue','wed','thu','fri']);
+
+      this._openModal(`
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;">
+            <path d="M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z"/>
+          </svg>
+          Gerar Cronograma Automaticamente
+        </h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:4px 0 20px;line-height:1.5;">
+          Escolha os dias disponíveis e a intensidade. O sistema vai distribuir as
+          <strong>${subjects.length} matéria${subjects.length !== 1 ? 's' : ''}</strong> de forma equilibrada.
+        </p>
+
+        <!-- Dias disponíveis -->
+        <div style="margin-bottom:18px;">
+          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:10px;">
+            Dias disponíveis
+          </label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;" id="auto-sched-days">
+            ${allDays.map(d => `
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;
+                padding:6px 12px;border-radius:8px;border:1px solid var(--border);
+                background:var(--bg-3);font-size:0.82rem;font-weight:500;
+                transition:background .15s,border-color .15s;user-select:none;"
+                class="auto-day-label" data-day="${d.key}">
+                <input type="checkbox" value="${d.key}" ${defaultDays.has(d.key) ? 'checked' : ''}
+                  class="auto-day-cb" style="accent-color:var(--accent);">
+                ${d.label}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Intensidade -->
+        <div style="margin-bottom:18px;">
+          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:10px;">
+            Intensidade (matérias por dia)
+          </label>
+          <div style="display:flex;gap:8px;" id="auto-sched-intensity">
+            ${[
+              { val:1, label:'Leve',    sub:'1 matéria/dia'   },
+              { val:2, label:'Moderado',sub:'2 matérias/dia'  },
+              { val:3, label:'Intenso', sub:'3 matérias/dia'  },
+            ].map((opt, i) => `
+              <label style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+                cursor:pointer;padding:10px 8px;border-radius:8px;border:1px solid var(--border);
+                background:${i===1?'color-mix(in srgb,var(--accent) 10%,transparent)':'var(--bg-3)'};
+                border-color:${i===1?'color-mix(in srgb,var(--accent) 35%,transparent)':'var(--border)'};
+                text-align:center;transition:all .15s;user-select:none;" class="auto-int-label">
+                <input type="radio" name="auto-intensity" value="${opt.val}" ${i===1?'checked':''}
+                  class="auto-int-cb" style="display:none;">
+                <span style="font-size:0.85rem;font-weight:600;color:${i===1?'var(--accent)':'var(--text)'}">
+                  ${opt.label}
+                </span>
+                <span style="font-size:0.7rem;color:var(--text-muted)">${opt.sub}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Preview das matérias -->
+        <div style="margin-bottom:18px;padding:12px;background:var(--bg-3);border-radius:var(--radius-sm);border:1px solid var(--border);">
+          <div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">
+            Matérias que serão distribuídas
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${subjects.map(s => `
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+                border-radius:20px;font-size:0.78rem;font-weight:500;
+                background:color-mix(in srgb,${s.color} 14%,transparent);
+                color:${s.color};border:1px solid color-mix(in srgb,${s.color} 30%,transparent);">
+                ${s.emoji} ${s.name}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Modo: substituir ou mesclar -->
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+          background:color-mix(in srgb,var(--accent) 6%,transparent);
+          border-radius:var(--radius-sm);border:1px dashed color-mix(in srgb,var(--accent) 25%,transparent);
+          margin-bottom:4px;">
+          <input type="checkbox" id="auto-sched-replace" checked style="accent-color:var(--accent);">
+          <label for="auto-sched-replace" style="font-size:0.82rem;cursor:pointer;">
+            <strong>Substituir</strong> o cronograma atual (desmarque para <strong>mesclar</strong>)
+          </label>
+        </div>
+
+        <div class="modal-footer" style="margin-top:20px;">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="auto-sched-confirm">✨ Gerar Cronograma</button>
+        </div>
+      `, () => {
+        // Visual feedback for day labels
+        this.el?.querySelectorAll?.('.auto-day-cb') || [];
+        document.querySelectorAll('.auto-day-cb').forEach(cb => {
+          const lbl = cb.closest('.auto-day-label');
+          const updateLabel = () => {
+            lbl.style.background    = cb.checked ? 'color-mix(in srgb,var(--accent) 12%,transparent)' : 'var(--bg-3)';
+            lbl.style.borderColor   = cb.checked ? 'color-mix(in srgb,var(--accent) 35%,transparent)' : 'var(--border)';
+            lbl.style.color         = cb.checked ? 'var(--accent)' : 'var(--text)';
+          };
+          updateLabel();
+          cb.addEventListener('change', updateLabel);
+        });
+
+        // Visual feedback for intensity labels
+        document.querySelectorAll('.auto-int-cb').forEach(rb => {
+          rb.addEventListener('change', () => {
+            document.querySelectorAll('.auto-int-label').forEach(lbl => {
+              const inner = lbl.querySelector('.auto-int-cb');
+              lbl.style.background  = inner.checked ? 'color-mix(in srgb,var(--accent) 10%,transparent)' : 'var(--bg-3)';
+              lbl.style.borderColor = inner.checked ? 'color-mix(in srgb,var(--accent) 35%,transparent)' : 'var(--border)';
+              lbl.querySelector('span').style.color = inner.checked ? 'var(--accent)' : 'var(--text)';
+            });
+          });
+        });
+
+        document.getElementById('auto-sched-confirm')?.addEventListener('click', () => {
+          // Read selections
+          const selectedDays = [...document.querySelectorAll('.auto-day-cb:checked')].map(cb => cb.value);
+          const intensity    = parseInt(document.querySelector('.auto-int-cb:checked')?.value || '2', 10);
+          const replace      = document.getElementById('auto-sched-replace')?.checked ?? true;
+
+          if (selectedDays.length === 0) {
+            alert('Selecione pelo menos um dia disponível.');
+            return;
+          }
+
+          // ── Smart distribution algorithm ──────────────────────────
+          // Round-robin: each subject gets assigned to days in rotation,
+          // cycling through subjects so the load is balanced.
+          const DAYS_KEYS = ['mon','tue','wed','thu','fri','sat','sun'];
+          const sched = replace
+            ? { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] }
+            : (Storage.get('studySchedule') || { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] });
+
+          // Build a rotation queue: repeat each subject to fill slots
+          // Total slots = selectedDays.length × intensity
+          const totalSlots = selectedDays.length * intensity;
+          // Repeat subjects list enough times to fill all slots
+          const queue = [];
+          for (let i = 0; i < totalSlots; i++) {
+            queue.push(subjects[i % subjects.length]);
+          }
+
+          // Distribute: fill each day up to `intensity` subjects
+          selectedDays.forEach((dayKey, di) => {
+            const slot = queue.slice(di * intensity, di * intensity + intensity);
+            slot.forEach(subj => {
+              if (!sched[dayKey].includes(subj.id)) {
+                sched[dayKey].push(subj.id);
+              }
+            });
+          });
+
+          Storage.set('studySchedule', sched);
+          this._closeModal();
+          this._toast(`✅ Cronograma gerado para ${selectedDays.length} dias!`);
+          this._render();
+        });
+      });
+    });
+
     // ── NotebookLM MindMap Integration ──────────────────────────────────────
 
     EventBus.on('ui:openNotebookLMMindMapModal', ({ map }) => {
