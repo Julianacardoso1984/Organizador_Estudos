@@ -185,7 +185,7 @@ class AppController {
   // ── Event Bindings ─────────────────────────────────────────────────────────
 
   _bindEvents() {
-    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel } = this.models;
+    const { subjectModel, pageModel, taskModel, timerModel, calendarModel, materialModel, mindMapModel, topicModel } = this.models;
 
     // ─ Navigation ─
     EventBus.on('navigate', ({ view, pageId, subjectId, mapId }) => {
