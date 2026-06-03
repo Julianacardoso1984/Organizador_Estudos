@@ -48,6 +48,14 @@ class EditorView {
               </svg>
               Gerar Tarefas
             </button>
+            <button class="btn-sm" id="btn-generate-topics"
+              style="display:flex; align-items:center; gap:6px; font-weight:600; background:linear-gradient(135deg,#F59E0B,#EF4444); color:#fff; border:none; border-radius:var(--radius-sm); padding:6px 12px; cursor:pointer;"
+              title="Gerar assuntos automaticamente a partir desta anotação">
+              <svg viewBox="0 0 24 24" style="width:13px;height:13px;flex-shrink:0;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;">
+                <path d="M4 6h16M4 12h16m-7 6h7"/>
+              </svg>
+              Gerar Assuntos
+            </button>
             <button class="btn-sm" id="btn-delete-page">🗑 Excluir</button>
           </div>
         </div>
@@ -141,6 +149,11 @@ class EditorView {
     // Generate tasks from this page's content
     document.getElementById('btn-generate-tasks')?.addEventListener('click', () => {
       EventBus.emit('ui:generateTasksFromPage', { page: this.page, subject: this.subject });
+    });
+
+    // Generate topics from this page's content
+    document.getElementById('btn-generate-topics')?.addEventListener('click', () => {
+      EventBus.emit('ui:generateTopicsFromPage', { page: this.page, subject: this.subject });
     });
 
     // Slash menu items

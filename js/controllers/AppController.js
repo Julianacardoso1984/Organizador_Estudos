@@ -422,6 +422,119 @@ class AppController {
     EventBus.on('ui:newTask', ({ subjectId }) => this._showTaskModal(subjectId));
 
     // ── Gerar Tarefas a partir de Anotações ─────────────────────────────────
+    // ── Gerar Assuntos a partir de Anotações ─────────────────────────────────
+    EventBus.on('ui:generateTopicsFromPage', ({ page, subject }) => {
+      if (!page?.blocks?.length) {
+        alert('Esta anotação está vazia. Adicione conteúdo antes de gerar assuntos.');
+        return;
+      }
+
+      const extracted = [];
+      
+      page.blocks.forEach(block => {
+        const text = (block.content || '').trim();
+        if (!text) return;
+
+        // Títulos (h1/h2/h3) -> Assuntos principais (alta confiança)
+        if (['h1','h2','h3'].includes(block.type)) {
+          extracted.push({ title: text, source: block.type, selected: true });
+          return;
+        }
+
+        // Se for um item de lista, também podemos considerar como sub-assunto opcional
+        if (['bullet', 'numbered'].includes(block.type)) {
+          // Não inclui se tiver verbo de ação forte (pois isso costuma ser tarefa)
+          const ACTION_VERBS = /\b(estudar|revisar|ler|resolver|fazer|praticar|completar|terminar|entregar|pesquisar|analisar|escrever|preparar|exercitar|treinar|corrigir|rever|aprender|memorizar|calcular|elaborar|criar|produzir|organizar|planejar|assistir|ouvir|baixar|imprimir|resumir|listar|formular|responder|verificar)\b/i;
+          if (!ACTION_VERBS.test(text) && text.length < 80) {
+            extracted.push({ title: text, source: block.type, selected: false });
+          }
+        }
+      });
+
+      if (extracted.length === 0) {
+        alert('Nenhum assunto foi identificado nesta anotação.\\n\\nDica: Adicione títulos (H1, H2, H3) para estruturar os assuntos do seu material.');
+        return;
+      }
+
+      const subjectColor = subject?.color || '#F59E0B';
+
+      this._openModal(`
+        <h2 style="display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;">
+            <path d="M4 6h16M4 12h16m-7 6h7"/>
+          </svg>
+          Assuntos Extraídos da Anotação
+        </h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:4px 0 16px;line-height:1.5;">
+          ${extracted.length} assunto${extracted.length !== 1 ? 's' : ''} identificado${extracted.length !== 1 ? 's' : ''} em
+          <strong>"${page.title}"</strong>. Marque os que deseja adicionar:
+        </p>
+        <div id="gen-topics-list" style="display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow-y:auto;padding-right:4px;margin-bottom:16px;">
+          ${extracted.map((item, i) => \`
+            <div class="gen-topic-row" data-idx="\${i}"
+              style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
+                border-radius:var(--radius-sm);border:1px solid var(--border);
+                background:\${item.selected ? 'color-mix(in srgb,' + subjectColor + ' 6%,var(--bg-3))' : 'var(--bg-3)'};
+                transition:background .15s,border-color .15s;">
+              <input type="checkbox" class="gen-topic-cb" data-idx="\${i}"
+                \${item.selected ? 'checked' : ''}
+                style="margin-top:3px;accent-color:var(--accent);flex-shrink:0;width:15px;height:15px;">
+              <div style="flex:1;min-width:0;">
+                <input type="text" class="gen-topic-title modal-input" data-idx="\${i}"
+                  value="\${item.title.replace(/"/g,'&quot;')}"
+                  style="width:100%;margin:0;padding:4px 8px;font-size:0.83rem;font-weight:500;">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;justify-content:center;">
+                <span style="font-size:0.75rem;color:var(--text-dim);text-align:center;padding:4px 8px;background:var(--bg);border-radius:4px;border:1px solid var(--border);">
+                  \${item.source === 'h1' ? '🔷 H1' : item.source === 'h2' ? '🔶 H2' : item.source === 'h3' ? '🔸 H3' : '• item'}
+                </span>
+              </div>
+            </div>
+          \`).join('')}
+        </div>
+        <div class="modal-footer" style="margin-top:16px;">
+          <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn-ghost" id="gen-topics-select-all" style="font-size:0.8rem;">Selecionar Tudo</button>
+          <button class="btn-primary" id="gen-topics-confirm" style="background:var(--accent);">✅ Criar Assuntos Selecionados</button>
+        </div>
+      `, () => {
+        const updateRowStyle = (cb) => {
+          const row = document.querySelector('.gen-topic-row[data-idx="' + cb.dataset.idx + '"]');
+          if (row) {
+            row.style.background  = cb.checked ? 'color-mix(in srgb,' + subjectColor + ' 6%,var(--bg-3))' : 'var(--bg-3)';
+            row.style.borderColor = cb.checked ? 'color-mix(in srgb,' + subjectColor + ' 25%,var(--border))' : 'var(--border)';
+          }
+        };
+        document.querySelectorAll('.gen-topic-cb').forEach(cb => {
+          updateRowStyle(cb);
+          cb.addEventListener('change', () => updateRowStyle(cb));
+        });
+        document.getElementById('gen-topics-select-all')?.addEventListener('click', () => {
+          const cbs = document.querySelectorAll('.gen-topic-cb');
+          const allChecked = [...cbs].every(cb => cb.checked);
+          cbs.forEach(cb => { cb.checked = !allChecked; updateRowStyle(cb); });
+        });
+        document.getElementById('gen-topics-confirm')?.addEventListener('click', () => {
+          let count = 0;
+          document.querySelectorAll('.gen-topic-row').forEach(row => {
+            const cb = row.querySelector('.gen-topic-cb');
+            if (!cb?.checked) return;
+            const title = row.querySelector('.gen-topic-title')?.value.trim();
+            if (!title) return;
+            
+            topicModel.create(subject?.id || null, title);
+            count++;
+          });
+          this._closeModal();
+          this._toast(count > 0
+            ? '✅ ' + count + ' assunto' + (count !== 1 ? 's' : '') + ' criado' + (count !== 1 ? 's' : '') + ' com sucesso!'
+            : 'Nenhum assunto marcado para criação.');
+          if (count > 0) this._render();
+        });
+      });
+    });
+
+
     EventBus.on('ui:generateTasksFromPage', ({ page, subject }) => {
       if (!page?.blocks?.length) {
         alert('Esta anotação está vazia. Adicione conteúdo antes de gerar tarefas.');
