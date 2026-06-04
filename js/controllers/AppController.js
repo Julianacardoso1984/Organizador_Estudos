@@ -1964,6 +1964,66 @@ class AppController {
       }
     });
 
+
+    EventBus.on('ui:importGoogleDocToPage', async ({ pageId }) => {
+      if (!GoogleCalendar.isAuthenticated()) {
+        const confirmConn = confirm('Você precisa se conectar com a conta do Google para importar documentos. Deseja conectar agora?');
+        if (confirmConn) {
+          try {
+            this._toast('Conectando ao Google...');
+            await GoogleCalendar.connect();
+            this._toast('🟢 Conectado com sucesso!');
+          } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com Google: ' + e.message);
+            return;
+          }
+        } else {
+          return;
+        }
+      }
+
+      const page = this.models.pageModel.getById(pageId);
+      if (!page) return;
+
+      const urlOrId = prompt('Cole o link do Google Docs que deseja importar:');
+      if (!urlOrId) return;
+
+      // Extract document ID from URL (e.g., https://docs.google.com/document/d/1BxiMVs0XRYNzOQgw6H_0V-Gk-R0V-Gk/edit)
+      let documentId = urlOrId;
+      const match = urlOrId.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (match && match[1]) {
+        documentId = match[1];
+      }
+
+      try {
+        this._toast('📥 Importando documento do Google Docs...');
+        const docData = await GoogleCalendar.importFromGoogleDocs(documentId);
+        
+        if (!docData.blocks || docData.blocks.length === 0) {
+          alert('O documento parece estar vazio ou não possui texto importável.');
+          return;
+        }
+
+        const confirmImport = confirm(`Documento encontrado: "${docData.title}" com ${docData.blocks.length} blocos.\n\nDeseja adicionar este conteúdo ao final da sua anotação atual?`);
+        
+        if (confirmImport) {
+          const updatedBlocks = [...page.blocks, ...docData.blocks];
+          // Limpa o primeiro bloco se ele estiver vazio, para evitar lixo
+          if (updatedBlocks.length > 0 && updatedBlocks[0].type === 'text' && !updatedBlocks[0].content) {
+            updatedBlocks.shift();
+          }
+          
+          this.models.pageModel.updateBlocks(pageId, updatedBlocks);
+          this._toast('✅ Conteúdo importado com sucesso!');
+          this._render();
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Erro ao importar do Google Docs: ' + e.message + '\n\nCertifique-se de colar o link completo de um documento válido.');
+      }
+    });
+
     EventBus.on('ui:exportPageToGoogleDocs', async ({ pageId }) => {
       if (!GoogleCalendar.isAuthenticated()) {
         const confirmConn = confirm('Você precisa se conectar com a conta do Google e autorizar o Google Docs para exportar. Deseja conectar agora?');

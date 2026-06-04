@@ -30,6 +30,10 @@ class EditorView {
               <span id="voice-record-icon">🎙️</span>
               <span id="voice-record-label">Nota por Voz</span>
             </button>
+            <button class="btn-ghost btn-sm" id="btn-import-docs" style="display:flex; align-items:center; gap:6px; font-weight:600;" title="Importar conteúdo de um Google Docs para esta anotação">
+              <span>📥</span>
+              <span>Importar Docs</span>
+            </button>
             <button class="btn-ghost btn-sm" id="btn-export-docs" style="display:flex; align-items:center; gap:6px; font-weight:600;" title="Exportar esta anotação para o Google Docs">
               <span>📄</span>
               <span>Exportar Docs</span>
@@ -139,6 +143,11 @@ class EditorView {
     // Google Docs export toggle
     document.getElementById('btn-export-docs')?.addEventListener('click', () => {
       EventBus.emit('ui:exportPageToGoogleDocs', { pageId: this.page.id });
+    });
+
+    // Google Docs import
+    document.getElementById('btn-import-docs')?.addEventListener('click', () => {
+      EventBus.emit('ui:importGoogleDocToPage', { pageId: this.page.id });
     });
 
     // NotebookLM notes import

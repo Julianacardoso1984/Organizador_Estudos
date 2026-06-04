@@ -368,6 +368,79 @@ class GoogleCalendarService {
     return `https://docs.google.com/document/d/${documentId}/edit`;
   }
 
+  // Importa um documento do Google Docs e o converte para blocos
+  async importFromGoogleDocs(documentId) {
+    if (!this.isAuthenticated()) {
+      throw new Error('Não autenticado com a conta do Google.');
+    }
+
+    const url = `https://docs.googleapis.com/v1/documents/${documentId}`;
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${this.accessToken}` }
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `Erro ao ler documento: ${response.status}`);
+    }
+
+    const doc = await response.json();
+    const blocks = [];
+
+    // Parse do conteúdo do documento
+    if (doc.body && doc.body.content) {
+      for (const element of doc.body.content) {
+        if (element.paragraph) {
+          const p = element.paragraph;
+          let text = '';
+          if (p.elements) {
+            p.elements.forEach(el => {
+              if (el.textRun && el.textRun.content) {
+                text += el.textRun.content;
+              }
+            });
+          }
+          text = text.trim();
+          if (!text) continue; // Pular parágrafos vazios
+
+          let type = 'text';
+          const style = p.paragraphStyle?.namedStyleType;
+          
+          if (style === 'HEADING_1') type = 'h1';
+          else if (style === 'HEADING_2') type = 'h2';
+          else if (style === 'HEADING_3') type = 'h3';
+          else if (p.bullet) {
+            // Pode ser bullet, numerado ou checkbox. 
+            // O Docs não retorna facilmente se é checkbox sem olhar o listProperties.
+            // Vamos simplificar: se tiver um formato de checkbox no texto, é checkbox
+            if (text.startsWith('[ ]') || text.startsWith('[x]') || text.startsWith('[X]')) {
+               type = 'checkbox';
+            } else {
+               type = 'bullet';
+            }
+          }
+
+          let checked = false;
+          if (type === 'checkbox') {
+             if (text.startsWith('[x]') || text.startsWith('[X]')) checked = true;
+             text = text.replace(/^\[[xX ]\]\s*/, '');
+          } else if (type === 'bullet' && text.match(/^[•\-\*]\s+/)) {
+             text = text.replace(/^[•\-\*]\s+/, '');
+          }
+
+          blocks.push({
+            id: 'blk_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+            type,
+            content: text,
+            checked
+          });
+        }
+      }
+    }
+
+    return { title: doc.title, blocks };
+  }
+
   // Formata o payload no padrão Google API
   _formatEventPayload(event, subjectName) {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo';
