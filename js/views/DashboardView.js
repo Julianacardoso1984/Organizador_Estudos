@@ -80,7 +80,10 @@ class DashboardView {
               const subPages = pages.filter(p=>p.subjectId===s.id).length;
               const subTasks = tasks.filter(t=>t.subjectId===s.id && t.status !== 'done').length;
               return `
-              <a href="#" class="course-card" data-nav="notes" data-subject-id="${s.id}">
+              <a href="#" class="course-card" data-nav="notes" data-subject-id="${s.id}" style="position: relative;">
+                <button class="btn-icon btn-delete-subject" data-subject-id="${s.id}" title="Excluir Matéria" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 4px; padding: 4px; cursor: pointer; z-index: 10;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" style="stroke: currentColor; fill: none; stroke-width: 2;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
                 <div class="course-card-color" style="background-color: ${s.color}; color: #fff;">
                   ${s.emoji}
                 </div>
@@ -150,8 +153,18 @@ class DashboardView {
     this.el.querySelectorAll('[data-nav]').forEach(el => {
       el.addEventListener('click', e => {
         e.preventDefault();
-        // Since course cards navigate to subject's notes directly, emit navigation for that subject
+        // Evita navegação se clicou no botão de apagar
+        if (e.target.closest('.btn-delete-subject')) return;
         EventBus.emit('navigate', {view: el.dataset.nav, pageId: el.dataset.pageId, subjectId: el.dataset.subjectId});
+      });
+    });
+
+    // Delete subject
+    this.el.querySelectorAll('.btn-delete-subject').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        EventBus.emit('ui:deleteSubject', { subjectId: btn.dataset.subjectId });
       });
     });
 
