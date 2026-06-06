@@ -34,10 +34,17 @@ async function migrateLegacyData(userId) {
       const data = JSON.parse(dataStr);
       if (!Array.isArray(data) || data.length === 0) continue;
 
+      // Função para converter camelCase em snake_case
+      const toSnakeCase = str => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+
       // Formatar dados para o banco
       const recordsToInsert = data.map(item => {
-        // Garantir que todos os itens tenham o user_id
-        const newItem = { ...item, user_id: userId };
+        const newItem = { user_id: userId };
+        for (const [key, value] of Object.entries(item)) {
+          // Ignorar campos vazios irrelevantes
+          if (value === undefined) continue;
+          newItem[toSnakeCase(key)] = value;
+        }
         return newItem;
       });
 
