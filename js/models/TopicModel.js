@@ -5,7 +5,26 @@
  */
 class TopicModel {
   constructor() {
-    this._topics = Storage.get('topics') || [];
+    this._topics = [];
+  }
+
+  async loadData(userId) {
+    if (!window.SupabaseClient) return;
+    const { data, error } = await window.SupabaseClient
+      .from('topics')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      console.error('Erro ao carregar topics:', error);
+    } else {
+      this._topics = data || [];
+      this._topics.forEach(t => {
+        t.subjectId = t.subject_id;
+        t.createdAt = t.created_at;
+      });
+    }
   }
 
   getAll() {
@@ -20,47 +39,73 @@ class TopicModel {
     return this._topics.find(t => t.id === id);
   }
 
-  create(subjectId, name) {
+  async create(subjectId, name) {
     const topic = {
-      id: 'top_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-      subjectId,
+      id: _uuid(),
+      user_id: window.currentUser.id,
+      subject_id: subjectId,
       name,
       studied: false,
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
-    this._topics.push(topic);
-    this._save();
-    return topic;
+    
+    const localTopic = { ...topic, subjectId: topic.subject_id, createdAt: topic.created_at };
+    this._topics.push(localTopic);
+    EventBus.emit('topics:updated');
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('topics').insert(topic);
+      if (error) console.error('Erro ao salvar topic no Supabase:', error);
+    }
+    return localTopic;
   }
 
-  update(id, updates) {
+  async update(id, updates) {
     const idx = this._topics.findIndex(t => t.id === id);
     if (idx !== -1) {
       this._topics[idx] = { ...this._topics[idx], ...updates };
-      this._save();
+      EventBus.emit('topics:updated');
+
+      if (window.SupabaseClient) {
+        const dbData = { ...updates };
+        if (dbData.subjectId !== undefined) { dbData.subject_id = dbData.subjectId; delete dbData.subjectId; }
+        const { error } = await window.SupabaseClient.from('topics').update(dbData).eq('id', id).eq('user_id', window.currentUser.id);
+        if (error) console.error('Erro ao atualizar topic no Supabase:', error);
+      }
     }
   }
 
-  toggleStudied(id) {
+  async toggleStudied(id) {
     const t = this.getById(id);
     if (t) {
-      t.studied = !t.studied;
-      this._save();
+      const newStatus = !t.studied;
+      t.studied = newStatus;
+      EventBus.emit('topics:updated');
+      
+      if (window.SupabaseClient) {
+        const { error } = await window.SupabaseClient.from('topics').update({ studied: newStatus }).eq('id', id).eq('user_id', window.currentUser.id);
+        if (error) console.error('Erro ao alternar status do topic no Supabase:', error);
+      }
     }
   }
 
-  delete(id) {
+  async delete(id) {
     this._topics = this._topics.filter(t => t.id !== id);
-    this._save();
-  }
-
-  deleteBySubject(subjectId) {
-    this._topics = this._topics.filter(t => t.subjectId !== subjectId);
-    this._save();
-  }
-
-  _save() {
-    Storage.set('topics', this._topics);
     EventBus.emit('topics:updated');
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('topics').delete().eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar topic no Supabase:', error);
+    }
+  }
+
+  async deleteBySubject(subjectId) {
+    this._topics = this._topics.filter(t => t.subjectId !== subjectId);
+    EventBus.emit('topics:updated');
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('topics').delete().eq('subject_id', subjectId).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar topics por subject no Supabase:', error);
+    }
   }
 }

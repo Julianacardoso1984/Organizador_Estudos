@@ -5,16 +5,21 @@
  */
 class CourseModel {
   constructor() {
-    const raw = localStorage.getItem('courses');
-    if (raw === null) {
-      this.courses = [];
-      this._seed();
+    this.courses = [];
+  }
+
+  async loadData(userId) {
+    if (!window.SupabaseClient) return;
+    const { data, error } = await window.SupabaseClient
+      .from('courses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      console.error('Erro ao carregar courses:', error);
     } else {
-      try {
-        this.courses = JSON.parse(raw) || [];
-      } catch (e) {
-        this.courses = [];
-      }
+      this.courses = data || [];
     }
   }
 
@@ -22,7 +27,7 @@ class CourseModel {
 
   getById(id) { return this.courses.find(c => c.id === id) || null; }
 
-  create(name, url, emoji = '💻') {
+  async create(name, url, emoji = '💻') {
     let formattedUrl = url.trim();
     if (!/^https?:\/\//i.test(formattedUrl)) {
       formattedUrl = 'https://' + formattedUrl;
@@ -30,30 +35,30 @@ class CourseModel {
 
     const course = {
       id: _uuid(),
+      user_id: window.currentUser.id,
       name: name.trim(),
       url: formattedUrl,
       emoji,
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
+    
     this.courses.push(course);
-    this._save();
     EventBus.emit('courses:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('courses').insert(course);
+      if (error) console.error('Erro ao salvar course no Supabase:', error);
+    }
     return course;
   }
 
-  delete(id) {
+  async delete(id) {
     this.courses = this.courses.filter(c => c.id !== id);
-    this._save();
     EventBus.emit('courses:updated', this.getAll());
-  }
 
-  _seed() {
-    this.courses = [
-      { id: 'c1', name: 'Khan Academy', url: 'https://pt.khanacademy.org', emoji: '🎓', createdAt: new Date().toISOString() },
-      { id: 'c2', name: 'Wikipedia', url: 'https://pt.wikipedia.org', emoji: '🌐', createdAt: new Date().toISOString() }
-    ];
-    this._save();
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('courses').delete().eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar course no Supabase:', error);
+    }
   }
-
-  _save() { Storage.set('courses', this.courses); }
 }

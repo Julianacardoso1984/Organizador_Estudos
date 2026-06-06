@@ -5,16 +5,27 @@
  */
 class FlashcardModel {
   constructor() {
-    const raw = localStorage.getItem('flashcards');
-    if (raw === null) {
-      this.flashcards = [];
-      this._seed();
+    this.flashcards = [];
+  }
+
+  async loadData(userId) {
+    if (!window.SupabaseClient) return;
+    const { data, error } = await window.SupabaseClient
+      .from('flashcards')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao carregar flashcards:', error);
     } else {
-      try {
-        this.flashcards = JSON.parse(raw) || [];
-      } catch (e) {
-        this.flashcards = [];
-      }
+      this.flashcards = data || [];
+      this.flashcards.forEach(f => {
+        f.subjectId = f.subject_id;
+        f.nextReviewDate = f.next_review ? f.next_review.slice(0, 10) : new Date().toISOString().slice(0, 10);
+        f.box = f.box || 1; // if box column is added later, or fallback to 1
+        f.createdAt = f.created_at;
+      });
     }
   }
 
@@ -33,33 +44,43 @@ class FlashcardModel {
     return this.flashcards.find(c => c.id === id) || null;
   }
 
-  create(subjectId, front, back) {
+  async create(subjectId, front, back) {
     const todayStr = new Date().toISOString().slice(0, 10);
     const card = {
       id: _uuid(),
-      subjectId,
-      front: front.trim(),
-      back: back.trim(),
-      box: 1, // Começa na caixa 1 (revisão diária)
-      nextReviewDate: todayStr,
-      createdAt: new Date().toISOString()
+      user_id: window.currentUser.id,
+      subject_id: subjectId,
+      question: front.trim(),
+      answer: back.trim(),
+      next_review: todayStr,
+      created_at: new Date().toISOString()
     };
-    this.flashcards.push(card);
-    this._save();
+    
+    const localCard = { ...card, subjectId: card.subject_id, front: card.question, back: card.answer, box: 1, nextReviewDate: card.next_review, createdAt: card.created_at };
+    this.flashcards.push(localCard);
     EventBus.emit('flashcards:updated', this.getAll());
-    return card;
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('flashcards').insert(card);
+      if (error) console.error('Erro ao salvar flashcard no Supabase:', error);
+    }
+    return localCard;
   }
 
-  delete(id) {
+  async delete(id) {
     this.flashcards = this.flashcards.filter(c => c.id !== id);
-    this._save();
     EventBus.emit('flashcards:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('flashcards').delete().eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar flashcard no Supabase:', error);
+    }
   }
 
   /**
    * Atualiza o estado da caixa e data de revisão com base no desempenho do usuário (Algoritmo Leitner).
    */
-  score(id, isCorrect) {
+  async score(id, isCorrect) {
     const card = this.getById(id);
     if (!card) return;
 
@@ -78,33 +99,13 @@ class FlashcardModel {
     nextDate.setDate(nextDate.getDate() + days);
     card.nextReviewDate = nextDate.toISOString().slice(0, 10);
 
-    this._save();
     EventBus.emit('flashcards:updated', this.getAll());
-  }
 
-  _seed() {
-    this.flashcards = [
-      {
-        id: 'fc1',
-        subjectId: 's1', // Vinculado a ex: Programação/Geral se existir
-        front: 'O que é o Event Loop no JavaScript?',
-        back: 'É o mecanismo que permite ao JS executar operações não-bloqueantes de I/O, gerenciando a pilha de execução (call stack) e a fila de callbacks (callback queue).',
-        box: 1,
-        nextReviewDate: new Date().toISOString().slice(0, 10),
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'fc2',
-        subjectId: 's1',
-        front: 'Diferença entre == e ===',
-        back: 'O operador == compara apenas os valores realizando coerção de tipo automática se necessário. Já o operador === compara o valor E o tipo, sem realizar coerção.',
-        box: 2,
-        nextReviewDate: new Date().toISOString().slice(0, 10),
-        createdAt: new Date().toISOString()
-      }
-    ];
-    this._save();
+    if (window.SupabaseClient) {
+      const dbData = { next_review: card.nextReviewDate, last_reviewed: new Date().toISOString() };
+      // O campo box precisaria ser adicionado à tabela `flashcards` no banco, ou podemos ignorar de salvar e salvar apenas no app ou em extra column. Para compatibilidade, salve o `next_review`.
+      const { error } = await window.SupabaseClient.from('flashcards').update(dbData).eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao atualizar flashcard no Supabase:', error);
+    }
   }
-
-  _save() { Storage.set('flashcards', this.flashcards); }
 }

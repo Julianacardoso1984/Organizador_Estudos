@@ -5,7 +5,28 @@
  */
 class PageModel {
   constructor() {
-    this.pages = Storage.get('pages') || [];
+    this.pages = [];
+  }
+
+  async loadData(userId) {
+    if (!window.SupabaseClient) return;
+    const { data, error } = await window.SupabaseClient
+      .from('pages')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao carregar pages:', error);
+    } else {
+      this.pages = data || [];
+      // Manter compatibilidade do nome dos campos
+      this.pages.forEach(p => {
+        p.subjectId = p.subject_id;
+        p.createdAt = p.created_at;
+        p.updatedAt = p.updated_at;
+      });
+    }
   }
 
   getAll() { return [...this.pages]; }
@@ -22,27 +43,45 @@ class PageModel {
       .slice(0, n);
   }
 
-  create(subjectId, title = 'Nova Página') {
+  async create(subjectId, title = 'Nova Página') {
     const page = {
       id: _uuid(),
-      subjectId,
+      user_id: window.currentUser.id,
+      subject_id: subjectId,
       title,
       blocks: [{ id: _uuid(), type: 'text', content: '', checked: false }],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
-    this.pages.push(page);
-    this._save();
+    
+    const localPage = { ...page, subjectId: page.subject_id, createdAt: page.created_at, updatedAt: page.updated_at };
+    this.pages.push(localPage);
     EventBus.emit('pages:updated', this.getAll());
-    return page;
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('pages').insert(page);
+      if (error) console.error('Erro ao salvar page no Supabase:', error);
+    }
+    return localPage;
   }
 
-  update(id, data) {
+  async update(id, data) {
     const idx = this.pages.findIndex(p => p.id === id);
     if (idx === -1) return null;
-    this.pages[idx] = { ...this.pages[idx], ...data, updatedAt: new Date().toISOString() };
-    this._save();
+    
+    const now = new Date().toISOString();
+    this.pages[idx] = { ...this.pages[idx], ...data, updatedAt: now };
     EventBus.emit('pages:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const dbData = { ...data, updated_at: now };
+      if (dbData.subjectId !== undefined) {
+        dbData.subject_id = dbData.subjectId;
+        delete dbData.subjectId;
+      }
+      const { error } = await window.SupabaseClient.from('pages').update(dbData).eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao atualizar page no Supabase:', error);
+    }
     return this.pages[idx];
   }
 
@@ -50,16 +89,24 @@ class PageModel {
     return this.update(id, { blocks });
   }
 
-  delete(id) {
+  async delete(id) {
     this.pages = this.pages.filter(p => p.id !== id);
-    this._save();
     EventBus.emit('pages:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('pages').delete().eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar page no Supabase:', error);
+    }
   }
 
-  deleteBySubject(subjectId) {
+  async deleteBySubject(subjectId) {
     this.pages = this.pages.filter(p => p.subjectId !== subjectId);
-    this._save();
     EventBus.emit('pages:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('pages').delete().eq('subject_id', subjectId).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar pages por subject no Supabase:', error);
+    }
   }
 
   search(query) {
@@ -69,6 +116,4 @@ class PageModel {
       p.blocks.some(b => (b.content || '').toLowerCase().includes(q))
     );
   }
-
-  _save() { Storage.set('pages', this.pages); }
 }

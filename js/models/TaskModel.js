@@ -5,7 +5,27 @@
  */
 class TaskModel {
   constructor() {
-    this.tasks = Storage.get('tasks') || [];
+    this.tasks = [];
+  }
+
+  async loadData(userId) {
+    if (!window.SupabaseClient) return;
+    const { data, error } = await window.SupabaseClient
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao carregar tasks:', error);
+    } else {
+      this.tasks = data || [];
+      this.tasks.forEach(t => {
+        t.subjectId = t.subject_id;
+        t.dueDate = t.due_date;
+        t.createdAt = t.created_at;
+      });
+    }
   }
 
   getAll() { return [...this.tasks]; }
@@ -23,46 +43,70 @@ class TaskModel {
     return this.tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done');
   }
 
-  create(subjectId, title, opts = {}) {
+  async create(subjectId, title, opts = {}) {
     const task = {
       id: _uuid(),
-      subjectId,
+      user_id: window.currentUser.id,
+      subject_id: subjectId,
       title: title.trim(),
       description: opts.description || '',
-      status: 'todo',           // 'todo' | 'doing' | 'done'
-      priority: opts.priority || 'medium', // 'low' | 'medium' | 'high'
-      dueDate: opts.dueDate || null,       // 'YYYY-MM-DD'
-      createdAt: new Date().toISOString()
+      status: 'todo',
+      priority: opts.priority || 'medium',
+      due_date: opts.dueDate || null,
+      created_at: new Date().toISOString()
     };
-    this.tasks.push(task);
-    this._save();
+    
+    const localTask = { ...task, subjectId: task.subject_id, dueDate: task.due_date, createdAt: task.created_at };
+    this.tasks.push(localTask);
     EventBus.emit('tasks:updated', this.getAll());
-    // Integração com Calendário: emite evento para que o CalendarModel crie entry
-    if (task.dueDate) EventBus.emit('task:withDue', task);
-    return task;
+    
+    if (localTask.dueDate) EventBus.emit('task:withDue', localTask);
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('tasks').insert(task);
+      if (error) console.error('Erro ao salvar task no Supabase:', error);
+    }
+    return localTask;
   }
 
-  update(id, data) {
+  async update(id, data) {
     const idx = this.tasks.findIndex(t => t.id === id);
     if (idx === -1) return null;
+    
     this.tasks[idx] = { ...this.tasks[idx], ...data };
-    this._save();
     EventBus.emit('tasks:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const dbData = { ...data };
+      if (dbData.subjectId !== undefined) { dbData.subject_id = dbData.subjectId; delete dbData.subjectId; }
+      if (dbData.dueDate !== undefined) { dbData.due_date = dbData.dueDate; delete dbData.dueDate; }
+      
+      const { error } = await window.SupabaseClient.from('tasks').update(dbData).eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao atualizar task no Supabase:', error);
+    }
     return this.tasks[idx];
   }
 
   setStatus(id, status) { return this.update(id, { status }); }
 
-  delete(id) {
+  async delete(id) {
     this.tasks = this.tasks.filter(t => t.id !== id);
-    this._save();
     EventBus.emit('tasks:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('tasks').delete().eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar task no Supabase:', error);
+    }
   }
 
-  deleteBySubject(subjectId) {
+  async deleteBySubject(subjectId) {
     this.tasks = this.tasks.filter(t => t.subjectId !== subjectId);
-    this._save();
     EventBus.emit('tasks:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('tasks').delete().eq('subject_id', subjectId).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar tasks por subject no Supabase:', error);
+    }
   }
 
   stats() {
@@ -73,6 +117,4 @@ class TaskModel {
       done: this.tasks.filter(t => t.status === 'done').length
     };
   }
-
-  _save() { Storage.set('tasks', this.tasks); }
 }

@@ -6,7 +6,28 @@
  */
 class MaterialModel {
   constructor() {
-    this.materials = Storage.get('materials') || [];
+    this.materials = [];
+  }
+
+  async loadData(userId) {
+    if (!window.SupabaseClient) return;
+    const { data, error } = await window.SupabaseClient
+      .from('materials')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao carregar materials:', error);
+    } else {
+      this.materials = data || [];
+      this.materials.forEach(m => {
+        m.subjectId = m.subject_id;
+        m.driveUrl = m.drive_url;
+        m.filePath = m.file_path;
+        m.uploadedAt = m.created_at;
+      });
+    }
   }
 
   getAll() { return [...this.materials]; }
@@ -20,80 +41,132 @@ class MaterialModel {
   async create(subjectId, file, tags = []) {
     const id = _uuid();
     const type = this._detectType(file.type, file.name);
+    const userId = window.currentUser.id;
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${id}.${fileExt}`;
+    const filePath = `${userId}/${fileName}`;
 
     const meta = {
       id,
-      subjectId,
-      name:       file.name,
+      user_id: userId,
+      subject_id: subjectId,
+      title:       file.name,
       type,                      // 'pdf' | 'image' | 'audio' | 'video' | 'doc' | 'other'
-      mimeType:   file.type,
-      size:       file.size,
-      tags,
-      uploadedAt: new Date().toISOString()
+      file_path:   filePath,
+      created_at: new Date().toISOString()
     };
 
-    // Salvar blob no IndexedDB
-    try {
-      await Storage.saveFile(id, file);
-    } catch (e) {
-      console.error('Erro ao salvar arquivo no IndexedDB:', e);
-      throw e;
+    if (window.SupabaseClient) {
+      // 1. Upload the file to Supabase Storage
+      const { error: uploadError } = await window.SupabaseClient.storage
+        .from('materials')
+        .upload(filePath, file);
+      
+      if (uploadError) {
+        console.error('Erro ao fazer upload no Supabase Storage:', uploadError);
+        throw uploadError;
+      }
+
+      // 2. Save metadata in the database
+      const { error: dbError } = await window.SupabaseClient.from('materials').insert(meta);
+      if (dbError) console.error('Erro ao salvar material_meta no Supabase:', dbError);
     }
 
-    this.materials.push(meta);
-    this._save();
+    const localMeta = { ...meta, subjectId, name: meta.title, filePath, uploadedAt: meta.created_at, size: file.size };
+    this.materials.push(localMeta);
     EventBus.emit('materials:updated', this.getAll());
-    return meta;
+    return localMeta;
   }
 
-  createDriveLink(subjectId, driveFile, tags = []) {
+  async createDriveLink(subjectId, driveFile, tags = []) {
     const id = _uuid();
     const meta = {
       id,
-      subjectId,
-      name:       driveFile.name,
+      user_id: window.currentUser.id,
+      subject_id: subjectId,
+      title:       driveFile.name,
       type:       'drive',
-      mimeType:   driveFile.mimeType,
-      size:       parseInt(driveFile.size) || 0,
-      driveUrl:   driveFile.webViewLink,
-      tags,
-      uploadedAt: new Date().toISOString()
+      drive_url:   driveFile.webViewLink,
+      created_at: new Date().toISOString()
     };
 
-    this.materials.push(meta);
-    this._save();
+    const localMeta = { ...meta, subjectId, name: meta.title, type: 'drive', driveUrl: meta.drive_url, uploadedAt: meta.created_at, size: parseInt(driveFile.size) || 0 };
+    this.materials.push(localMeta);
     EventBus.emit('materials:updated', this.getAll());
-    return meta;
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('materials').insert(meta);
+      if (error) console.error('Erro ao salvar material_drive no Supabase:', error);
+    }
+    return localMeta;
   }
 
-  update(id, data) {
+  async update(id, data) {
     const idx = this.materials.findIndex(m => m.id === id);
     if (idx === -1) return null;
+    
     this.materials[idx] = { ...this.materials[idx], ...data };
-    this._save();
     EventBus.emit('materials:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const dbData = { ...data };
+      if (dbData.subjectId !== undefined) { dbData.subject_id = dbData.subjectId; delete dbData.subjectId; }
+      if (dbData.name !== undefined) { dbData.title = dbData.name; delete dbData.name; }
+      
+      const { error } = await window.SupabaseClient.from('materials').update(dbData).eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao atualizar material no Supabase:', error);
+    }
     return this.materials[idx];
   }
 
   async delete(id) {
-    this.materials = this.materials.filter(m => m.id !== id);
-    this._save();
-    try { await Storage.deleteFile(id); } catch (_) {}
+    const m = this.getById(id);
+    if (!m) return;
+    
+    this.materials = this.materials.filter(x => x.id !== id);
     EventBus.emit('materials:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      if (m.type !== 'drive' && m.filePath) {
+        // Remove from storage
+        await window.SupabaseClient.storage.from('materials').remove([m.filePath]);
+      }
+      // Remove from database
+      const { error } = await window.SupabaseClient.from('materials').delete().eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar material no Supabase:', error);
+    }
   }
 
   async deleteBySubject(subjectId) {
     const toDelete = this.materials.filter(m => m.subjectId === subjectId);
     this.materials = this.materials.filter(m => m.subjectId !== subjectId);
-    this._save();
-    for (const m of toDelete) {
-      try { await Storage.deleteFile(m.id); } catch (_) {}
-    }
     EventBus.emit('materials:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      for (const m of toDelete) {
+        if (m.type !== 'drive' && m.filePath) {
+          await window.SupabaseClient.storage.from('materials').remove([m.filePath]);
+        }
+      }
+      const { error } = await window.SupabaseClient.from('materials').delete().eq('subject_id', subjectId).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar materials por subject no Supabase:', error);
+    }
   }
 
   async getBlob(id) {
-    return Storage.getFile(id);
+    const m = this.getById(id);
+    if (!m || m.type === 'drive' || !m.filePath) return null;
+    
+    if (window.SupabaseClient) {
+      const { data, error } = await window.SupabaseClient.storage.from('materials').download(m.filePath);
+      if (error) {
+        console.error('Erro ao baixar arquivo do Supabase:', error);
+        return null;
+      }
+      return data;
+    }
+    return null;
   }
 
   async getBlobURL(id) {
@@ -117,6 +190,4 @@ class MaterialModel {
     if (name.endsWith('.pptx') || name.endsWith('.ppt')) return 'slide';
     return 'other';
   }
-
-  _save() { Storage.set('materials', this.materials); }
 }

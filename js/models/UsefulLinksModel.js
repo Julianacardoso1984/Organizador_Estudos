@@ -5,16 +5,24 @@
  */
 class UsefulLinksModel {
   constructor() {
-    const raw = localStorage.getItem('usefulLinks');
-    if (raw === null) {
-      this.links = [];
-      this._seed();
+    this.links = [];
+  }
+
+  async loadData(userId) {
+    if (!window.SupabaseClient) return;
+    const { data, error } = await window.SupabaseClient
+      .from('useful_links')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      console.error('Erro ao carregar useful_links:', error);
     } else {
-      try {
-        this.links = JSON.parse(raw) || [];
-      } catch (e) {
-        this.links = [];
-      }
+      this.links = data || [];
+      this.links.forEach(l => {
+        l.createdAt = l.created_at;
+      });
     }
   }
 
@@ -22,55 +30,63 @@ class UsefulLinksModel {
 
   getById(id) { return this.links.find(l => l.id === id) || null; }
 
-  create(title, url, emoji = '🔗', description = '') {
+  async create(title, url, emoji = '🔗', description = '') {
     let formattedUrl = url.trim();
     if (!/^https?:\/\//i.test(formattedUrl)) {
       formattedUrl = 'https://' + formattedUrl;
     }
     const link = {
       id: _uuid(),
+      user_id: window.currentUser.id,
       title: title.trim(),
       url: formattedUrl,
       emoji,
       description: description.trim(),
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
-    this.links.push(link);
-    this._save();
+    
+    const localLink = { ...link, createdAt: link.created_at };
+    this.links.push(localLink);
     EventBus.emit('usefulLinks:updated', this.getAll());
-    return link;
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('useful_links').insert(link);
+      if (error) console.error('Erro ao salvar useful_link no Supabase:', error);
+    }
+    return localLink;
   }
 
-  update(id, { title, url, emoji, description }) {
+  async update(id, { title, url, emoji, description }) {
     const link = this.links.find(l => l.id === id);
     if (!link) return;
-    if (title !== undefined)       link.title       = title.trim();
-    if (emoji !== undefined)       link.emoji       = emoji;
-    if (description !== undefined) link.description = description.trim();
+    
+    const dbData = {};
+    if (title !== undefined)       { link.title       = title.trim(); dbData.title = link.title; }
+    if (emoji !== undefined)       { link.emoji       = emoji; dbData.emoji = link.emoji; }
+    if (description !== undefined) { link.description = description.trim(); dbData.description = link.description; }
     if (url !== undefined) {
       let formattedUrl = url.trim();
       if (!/^https?:\/\//i.test(formattedUrl)) formattedUrl = 'https://' + formattedUrl;
       link.url = formattedUrl;
+      dbData.url = link.url;
     }
-    this._save();
+    
     EventBus.emit('usefulLinks:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('useful_links').update(dbData).eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao atualizar useful_link no Supabase:', error);
+    }
     return link;
   }
 
-  delete(id) {
+  async delete(id) {
     this.links = this.links.filter(l => l.id !== id);
-    this._save();
     EventBus.emit('usefulLinks:updated', this.getAll());
-  }
 
-  _seed() {
-    this.links = [
-      { id: 'ul1', title: 'NotebookLM', url: 'https://notebooklm.google.com', emoji: '📓', description: 'Cadernos inteligentes com IA do Google', createdAt: new Date().toISOString() },
-      { id: 'ul2', title: 'Khan Academy', url: 'https://pt.khanacademy.org', emoji: '🎓', description: 'Cursos gratuitos em português', createdAt: new Date().toISOString() },
-      { id: 'ul3', title: 'YouTube', url: 'https://youtube.com', emoji: '▶️', description: 'Videoaulas e conteúdos educativos', createdAt: new Date().toISOString() },
-    ];
-    this._save();
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('useful_links').delete().eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar useful_link no Supabase:', error);
+    }
   }
-
-  _save() { Storage.set('usefulLinks', this.links); }
 }

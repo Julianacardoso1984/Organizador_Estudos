@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="css/mindmap.css">
   <link rel="stylesheet" href="css/integrations.css">
   <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/auth.css">
 
   <style>
     /* Tiny inline tweaks */
@@ -91,8 +92,12 @@
     <div class="modal-box" id="modal-box"></div>
   </div>
 
+  <!-- ── Supabase SDK ─────────────────────────────────────────────────────── -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <!-- ── JS: Utilitários (sem dependências) ────────────────────────────────── -->
   <script src="js/utils/eventBus.js"></script>
+  <script src="js/utils/supabaseClient.js"></script>
   <script src="js/utils/storage.js"></script>
   <script src="js/utils/ambientSound.js"></script>
   <script src="js/utils/googleCalendar.js"></script>
@@ -114,6 +119,7 @@
   <script src="js/models/UsefulLinksModel.js"></script>
 
   <!-- ── JS: Views (dependem dos models + eventBus) ────────────────────────── -->
+  <script src="js/views/AuthView.js"></script>
   <script src="js/views/SidebarView.js"></script>
   <script src="js/views/DashboardView.js"></script>
   <script src="js/views/ResourcesView.js"></script>

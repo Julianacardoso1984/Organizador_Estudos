@@ -5,7 +5,27 @@
  */
 class MindMapModel {
   constructor() {
-    this.maps = Storage.get('mindMaps') || [];
+    this.maps = [];
+  }
+
+  async loadData(userId) {
+    if (!window.SupabaseClient) return;
+    const { data, error } = await window.SupabaseClient
+      .from('mind_maps')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao carregar mind_maps:', error);
+    } else {
+      this.maps = data || [];
+      this.maps.forEach(m => {
+        m.subjectId = m.subject_id;
+        m.createdAt = m.created_at;
+        m.updatedAt = m.updated_at;
+      });
+    }
   }
 
   getAll() { return [...this.maps]; }
@@ -16,29 +36,45 @@ class MindMapModel {
 
   getById(id) { return this.maps.find(m => m.id === id) || null; }
 
-  create(subjectId, name, type = 'mind') {
+  async create(subjectId, name, type = 'mind') {
     const map = {
       id: _uuid(),
-      subjectId,
+      user_id: window.currentUser.id,
+      subject_id: subjectId,
       name: name.trim(),
       type,          // 'mind' | 'concept'
       nodes: [],
       edges: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
-    this.maps.push(map);
-    this._save();
+    
+    const localMap = { ...map, subjectId: map.subject_id, createdAt: map.created_at, updatedAt: map.updated_at };
+    this.maps.push(localMap);
     EventBus.emit('mindmaps:updated', this.getAll());
-    return map;
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('mind_maps').insert(map);
+      if (error) console.error('Erro ao salvar mind_map no Supabase:', error);
+    }
+    return localMap;
   }
 
-  update(id, data) {
+  async update(id, data) {
     const idx = this.maps.findIndex(m => m.id === id);
     if (idx === -1) return null;
-    this.maps[idx] = { ...this.maps[idx], ...data, updatedAt: new Date().toISOString() };
-    this._save();
+    
+    const now = new Date().toISOString();
+    this.maps[idx] = { ...this.maps[idx], ...data, updatedAt: now };
     EventBus.emit('mindmaps:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const dbData = { ...data, updated_at: now };
+      if (dbData.subjectId !== undefined) { dbData.subject_id = dbData.subjectId; delete dbData.subjectId; }
+      
+      const { error } = await window.SupabaseClient.from('mind_maps').update(dbData).eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao atualizar mind_map no Supabase:', error);
+    }
     return this.maps[idx];
   }
 
@@ -47,16 +83,24 @@ class MindMapModel {
     return this.update(id, { nodes, edges });
   }
 
-  delete(id) {
+  async delete(id) {
     this.maps = this.maps.filter(m => m.id !== id);
-    this._save();
     EventBus.emit('mindmaps:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('mind_maps').delete().eq('id', id).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar mind_map no Supabase:', error);
+    }
   }
 
-  deleteBySubject(subjectId) {
+  async deleteBySubject(subjectId) {
     this.maps = this.maps.filter(m => m.subjectId !== subjectId);
-    this._save();
     EventBus.emit('mindmaps:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('mind_maps').delete().eq('subject_id', subjectId).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar mind_maps por subject no Supabase:', error);
+    }
   }
 
   // Helpers de nós
@@ -110,6 +154,4 @@ class MindMapModel {
     const edges = map.edges.map(e => e.id === edgeId ? { ...e, label } : e);
     this.saveGraph(mapId, map.nodes, edges);
   }
-
-  _save() { Storage.set('mindMaps', this.maps); }
 }
