@@ -62,7 +62,11 @@ class DashboardView {
               <h1 style="font-size: 1.6rem; margin-bottom:4px;">Painel</h1>
               <p class="greeting-date" style="color:var(--text-muted); font-size: 0.9rem;">${greeting}, hoje é ${now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</p>
             </div>
-            <div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-secondary" id="btn-dash-migrate" style="display:flex; align-items:center; gap:8px; border: 1px solid var(--border); color: var(--text-muted);" title="Trazer dados salvos no navegador para a nuvem">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor; fill:none; stroke-width:2;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Migrar Dados Antigos
+              </button>
               <button class="btn-primary" id="btn-dash-new-subject" style="display:flex; align-items:center; gap:8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor; fill:none; stroke-width:2;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Nova Matéria
@@ -153,6 +157,21 @@ class DashboardView {
 
     this.el.querySelector('#btn-dash-new-subject')?.addEventListener('click', () => {
       EventBus.emit('ui:newSubject');
+    });
+
+    this.el.querySelector('#btn-dash-migrate')?.addEventListener('click', async () => {
+      if (confirm('Deseja enviar todos os seus dados antigos do navegador para a nuvem do Supabase? Isso pode demorar alguns segundos.')) {
+        try {
+          const { data: { session } } = await window.SupabaseClient.auth.getSession();
+          if (session && session.user && window.migrateLegacyData) {
+            await window.migrateLegacyData(session.user.id);
+          } else {
+            alert('Você precisa estar logado para migrar os dados.');
+          }
+        } catch(e) {
+          console.error(e);
+        }
+      }
     });
 
     // Zerar tempo focado
