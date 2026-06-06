@@ -81,8 +81,19 @@ async function migrateLegacyData(userId) {
 
           let mappedValue = value;
           
-          if (key === 'id' || key === 'subjectId' || key === 'taskId' || key === 'courseId') {
+          if (key === 'id') {
             mappedValue = getNewId(value);
+          } else if (key === 'subjectId' || key === 'taskId' || key === 'courseId') {
+            // Se for chave estrangeira e não existir no mapa (órfão), definir como null para não quebrar o banco
+            if (!value) {
+              mappedValue = null;
+            } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+              mappedValue = value;
+            } else if (idMap.has(value)) {
+              mappedValue = idMap.get(value);
+            } else {
+              mappedValue = null; // Dado órfão, removemos a referência
+            }
           }
 
           if ((key === 'createdAt' || key === 'updatedAt') && !value) {
@@ -124,14 +135,24 @@ async function migrateLegacyData(userId) {
     if (materialsStr) {
       const materials = JSON.parse(materialsStr);
       if (Array.isArray(materials) && materials.length > 0) {
-        const records = materials.map(m => ({ 
-          ...m, 
-          id: getNewId(m.id), 
-          subject_id: getNewId(m.subjectId), 
-          user_id: userId 
-        }));
-        // Remover subjectId que era camelCase original
-        records.forEach(r => delete r.subjectId);
+        const records = materials.map(m => {
+          let sId = null;
+          if (m.subjectId) {
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(m.subjectId)) {
+              sId = m.subjectId;
+            } else if (idMap.has(m.subjectId)) {
+              sId = idMap.get(m.subjectId);
+            }
+          }
+          const rec = { 
+            ...m, 
+            id: getNewId(m.id), 
+            subject_id: sId, 
+            user_id: userId 
+          };
+          delete rec.subjectId;
+          return rec;
+        });
         await window.SupabaseClient.from('materials').upsert(records, { onConflict: 'id' });
         migratedCount++;
       }
