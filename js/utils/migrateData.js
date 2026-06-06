@@ -37,6 +37,20 @@ async function migrateLegacyData(userId) {
     { key: 'usefulLinks', table: 'useful_links' }
   ];
 
+  const TABLE_COLUMNS = {
+    'subjects': ['id', 'user_id', 'name', 'emoji', 'color', 'created_at'],
+    'pages': ['id', 'user_id', 'subject_id', 'title', 'blocks', 'created_at', 'updated_at'],
+    'tasks': ['id', 'user_id', 'subject_id', 'title', 'description', 'status', 'priority', 'due_date', 'created_at'],
+    'calendar_events': ['id', 'user_id', 'task_id', 'subject_id', 'title', 'date', 'type', 'color', 'duration', 'notes', 'created_at'],
+    'topics': ['id', 'user_id', 'subject_id', 'name', 'studied', 'created_at'],
+    'mind_maps': ['id', 'user_id', 'subject_id', 'name', 'type', 'nodes', 'edges', 'created_at', 'updated_at'],
+    'courses': ['id', 'user_id', 'name', 'url', 'emoji', 'created_at'],
+    'flashcards': ['id', 'user_id', 'subject_id', 'question', 'answer', 'last_reviewed', 'next_review', 'created_at'],
+    'quizzes': ['id', 'user_id', 'subject_id', 'title', 'questions', 'score', 'completed_at', 'created_at'],
+    'useful_links': ['id', 'user_id', 'title', 'url', 'emoji', 'description', 'created_at'],
+    'materials': ['id', 'user_id', 'subject_id', 'title', 'type', 'drive_url', 'file_path', 'created_at']
+  };
+
   let migratedCount = 0;
   let errorCount = 0;
 
@@ -52,27 +66,35 @@ async function migrateLegacyData(userId) {
 
       const recordsToInsert = data.map(item => {
         const newItem = { user_id: userId };
-        for (const [key, value] of Object.entries(item)) {
+        const allowedCols = TABLE_COLUMNS[mig.table];
+
+        for (let [key, value] of Object.entries(item)) {
           if (value === undefined) continue;
+          
+          // Tratamentos especiais para flashcards antigos
+          if (mig.table === 'flashcards') {
+            if (key === 'front') key = 'question';
+            if (key === 'back') key = 'answer';
+            if (key === 'nextReviewDate') key = 'next_review';
+            if (key === 'lastReviewedDate') key = 'last_reviewed';
+          }
+
           let mappedValue = value;
           
-          // Mapear IDs
           if (key === 'id' || key === 'subjectId' || key === 'taskId' || key === 'courseId') {
             mappedValue = getNewId(value);
           }
-          
-          // Converter arrays para JSON em blocos ou questions (evitar erros no Supabase jsonb)
-          if ((key === 'blocks' || key === 'questions' || key === 'nodes' || key === 'edges') && Array.isArray(value)) {
-            // Se tiverem IDs internos antigos, idealmente deveriam ser mapeados, 
-            // mas como o Supabase JSONB aceita qualquer formato (mesmo "c1"), podemos só passar direto
-          }
 
-          // Se a data for vazia ou inválida, não enviar (deixar o Supabase usar o DEFAULT now())
           if ((key === 'createdAt' || key === 'updatedAt') && !value) {
             continue;
           }
 
-          newItem[toSnakeCase(key)] = mappedValue;
+          const finalColName = toSnakeCase(key);
+
+          // SÓ adicionar se a coluna existir de verdade na tabela do Supabase
+          if (allowedCols && allowedCols.includes(finalColName)) {
+            newItem[finalColName] = mappedValue;
+          }
         }
         return newItem;
       });
