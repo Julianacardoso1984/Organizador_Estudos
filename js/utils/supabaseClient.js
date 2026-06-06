@@ -7,7 +7,7 @@
 
 // INSIRA SUAS CREDENCIAIS AQUI
 const SUPABASE_URL = 'https://ggsfmbxofrnlosxiuubf.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_secret_IveDsHm5St1b74-UzZBYpA_3DwFSFpv';
+const SUPABASE_ANON_KEY = 'sb_publishable_RyyrVttnQEUXk6WLHLtOIQ_342poZMJ';
 
 let supabase = null;
 
