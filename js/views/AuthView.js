@@ -27,8 +27,14 @@ class AuthView {
 
         ${!isConfigured ? `
           <div class="auth-setup-warning">
-            <strong>⚠️ Atenção:</strong> O Supabase não está configurado.<br><br>
-            Por favor, abra o arquivo <code>js/utils/supabaseClient.js</code> e insira sua URL e Anon Key para que o login funcione.
+            <strong>⚠️ Atenção:</strong> O Supabase não está configurado corretamente.<br><br>
+            ${window._supabaseError === 'cdn_failed' ? 
+              'A biblioteca do Supabase não foi carregada (verifique sua conexão ou se o script foi bloqueado).' : 
+            window._supabaseError === 'missing_credentials' ? 
+              'Por favor, abra o arquivo <code>js/utils/supabaseClient.js</code> e insira sua URL e Anon Key.' : 
+            window._supabaseError === 'init_failed' ? 
+              'Ocorreu um erro ao inicializar o Supabase. Verifique se as credenciais estão corretas (sem aspas extras).' : 
+              'Você acabou de inserir as credenciais? Atualize a página (F5) para que tenham efeito.'}
           </div>
         ` : ''}
 
