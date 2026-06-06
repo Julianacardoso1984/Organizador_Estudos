@@ -9,7 +9,7 @@
 const SUPABASE_URL = 'https://ggsfmbxofrnlosxiuubf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_RyyrVttnQEUXk6WLHLtOIQ_342poZMJ';
 
-let supabase = null;
+let supabaseInstance = null;
 
 if (typeof window.supabase === 'undefined') {
   console.error('Erro Crítico: A biblioteca do Supabase não foi carregada. Verifique a tag <script> no index.html e sua conexão com a internet.');
@@ -19,7 +19,7 @@ if (typeof window.supabase === 'undefined') {
   window._supabaseError = 'missing_credentials';
 } else {
   try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     window._supabaseError = null;
   } catch (err) {
     console.error('Erro ao inicializar o cliente do Supabase:', err);
@@ -27,4 +27,4 @@ if (typeof window.supabase === 'undefined') {
   }
 }
 
-window.SupabaseClient = supabase;
+window.SupabaseClient = supabaseInstance;
