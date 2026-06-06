@@ -44,7 +44,7 @@ class AuthView {
           
           <div id="auth-error" class="auth-error"></div>
 
-          <button class="auth-btn primary" id="btn-auth-submit" ${!isConfigured ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+          <button class="auth-btn primary" id="btn-auth-submit" ${!isConfigured ? 'style="opacity: 0.8;"' : ''}>
             ${this.isLoginMode ? 'Entrar' : 'Criar Conta'}
           </button>
         </div>
@@ -94,6 +94,12 @@ class AuthView {
 
     if (btnSubmit) {
       btnSubmit.addEventListener('click', async () => {
+        const isConfigured = typeof window.SupabaseClient !== 'undefined' && window.SupabaseClient !== null;
+        if (!isConfigured) {
+          alert('O aplicativo ainda não conseguiu se conectar ao Supabase.\n\nPor favor, verifique se você atualizou a página após colocar as credenciais ou se o seu bloqueador de anúncios (AdBlock) está bloqueando o carregamento da biblioteca.');
+          return;
+        }
+
         const email = document.getElementById('auth-email').value.trim();
         const password = document.getElementById('auth-password').value.trim();
 
