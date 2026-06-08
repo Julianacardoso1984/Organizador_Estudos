@@ -1,97 +1,63 @@
-# Documentação de Implantação — EstudaAí
+# Guia de Implantação (Deployment) - Organizador de Estudos
 
-O **EstudaAí** é uma Single Page Application (SPA) desenvolvida com **HTML5, CSS3 e JavaScript (ES6+) puros**. Por não depender de frameworks complexos (como React ou Angular) ou de um backend próprio (Node.js, Python, etc.), o processo de implantação do sistema é direto e envolve apenas a hospedagem de arquivos estáticos.
-
----
-
-## 🛠 Pré-requisitos
-
-Não há necessidade de instalar dependências via `npm`, `yarn` ou bancos de dados.
-Todos os recursos necessários estão contidos nos diretórios do projeto:
-* `index.html` (Ponto de entrada)
-* `/css/` (Folhas de estilo)
-* `/js/` (Scripts, Modelos, Visões e Controladores)
-* `/assets/` (Imagens e ícones)
-
-> [!NOTE]
-> Os dados da aplicação são salvos localmente no navegador do usuário utilizando **LocalStorage** e **IndexedDB**. 
+Este documento descreve o passo a passo para colocar o Organizador de Estudos no ar, configurando tanto o banco de dados (Supabase) quanto a hospedagem da interface (Vercel).
 
 ---
 
-## 💻 Executando Localmente (Ambiente de Desenvolvimento)
+## 1. Configurando o Banco de Dados (Supabase)
 
-Para rodar o projeto em sua máquina para testes ou desenvolvimento, você precisa de um servidor web simples para evitar bloqueios de CORS (Cross-Origin Resource Sharing) ao carregar módulos ES6 e APIs.
+O Organizador de Estudos utiliza o **Supabase** como backend para salvar contas de usuários e sincronizar todas as informações na nuvem.
 
-### Opção 1: Usando VS Code (Recomendado)
-1. Instale a extensão **Live Server** no Visual Studio Code.
-2. Abra a pasta do projeto no VS Code.
-3. Clique com o botão direito no arquivo `index.html` e selecione **"Open with Live Server"**.
-4. O navegador abrirá automaticamente em `http://127.0.0.1:5500`.
+### Passo 1.1: Criar o Projeto
+1. Crie uma conta no [Supabase](https://supabase.com).
+2. Clique em **"New Project"** e preencha as informações (nome, senha do banco, região).
+3. Aguarde o banco de dados terminar de ser provisionado.
 
-### Opção 2: Usando Python
-Se você tiver o Python instalado:
-```bash
-# Abra o terminal na pasta do projeto e digite:
-python -m http.server 8000
-# Acesse no navegador: http://localhost:8000
-```
+### Passo 1.2: Criar as Tabelas e Permissões (SQL)
+1. No menu lateral do Supabase, clique em **SQL Editor**.
+2. Abra o arquivo `supabase_schema.sql` que está na pasta do seu projeto.
+3. Copie todo o conteúdo desse arquivo, cole no editor do Supabase e clique no botão **Run** (canto inferior direito).
+4. Se der "Success", todas as tabelas e regras de segurança foram criadas perfeitamente.
 
-### Opção 3: Usando Node.js (http-server)
-Se você tiver o Node.js instalado:
-```bash
-npx http-server -p 8080
-# Acesse no navegador: http://localhost:8080
-```
+### Passo 1.3: Configurar Autenticação (Login)
+Para evitar bloqueios de taxa de envio de e-mails no plano gratuito:
+1. Vá no menu lateral e clique em **Authentication** -> **Providers** -> **Email**.
+2. **Desmarque** a opção "Confirm email" (isso permite que novos usuários criem conta e já entrem no app sem precisar clicar em link de confirmação no e-mail).
+3. Salve as alterações.
 
----
-
-## 🚀 Implantação em Produção (Hospedagem)
-
-Como o projeto é totalmente estático, ele pode ser hospedado de forma gratuita em diversas plataformas de hospedagem na nuvem.
-
-### 1. Vercel (Recomendado pela simplicidade)
-A Vercel é excelente para projetos front-end estáticos.
-1. Crie uma conta na [Vercel](https://vercel.com).
-2. Instale o Vercel CLI ou conecte seu repositório do GitHub.
-3. Se usar o CLI, rode o comando na pasta do projeto:
-   ```bash
-   npx vercel
-   ```
-4. Siga as instruções no terminal. Nenhuma configuração de `build command` é necessária.
-
-### 2. GitHub Pages
-Se o código estiver no GitHub, o GitHub Pages é a forma mais natural de hospedar:
-1. Suba o código para um repositório público no GitHub.
-2. Vá em **Settings** > **Pages**.
-3. Em "Source", selecione a branch `main` ou `master` e a pasta `/(root)`.
-4. Salve e aguarde alguns minutos. Seu site estará disponível em `https://seunome.github.io/nome-do-repositorio/`.
-
-### 3. Netlify
-1. Crie uma conta no [Netlify](https://netlify.com).
-2. Arraste e solte a pasta do projeto diretamente no painel do Netlify, **OU** conecte seu repositório do GitHub.
-3. O Netlify publicará o site instantaneamente e fornecerá uma URL pública.
+### Passo 1.4: Obter as Credenciais
+1. Vá no menu lateral e clique em **Project Settings** (o ícone de engrenagem) -> **API**.
+2. Copie a `Project URL`.
+3. Copie a `Project API Key` (a que tem a tag `anon` / `public`).
+4. Abra o arquivo do projeto `/js/utils/supabaseClient.js` e cole essas duas informações no topo do arquivo (nas variáveis `SUPABASE_URL` e `SUPABASE_ANON_KEY`).
 
 ---
 
-## 🔐 Configurações de Integrações e APIs
+## 2. Hospedando o Site (Vercel)
 
-O sistema possui integrações nativas com serviços externos. Nenhuma configuração no servidor é necessária, pois as requisições são feitas pelo navegador do cliente.
+A interface do projeto é puramente estática (HTML, CSS, JS), o que torna a implantação na **Vercel** extremamente simples, rápida e 100% gratuita.
 
-* **Inteligência Artificial (Google Gemini):** O usuário insere a chave da API (API Key) diretamente na interface da aplicação (nos modais de IA de Mapas Mentais ou Flashcards). A chave é salva apenas no cache local do dispositivo do usuário por questões de segurança.
-* **Spotify / Discord:** Funcionam através de Web Embeds e OAuth client-side. Não é necessário hospedar um servidor de autenticação.
+### Passo 2.1: Subindo o código para o GitHub (Recomendado)
+A melhor forma de integrar com a Vercel é tendo seu código no GitHub:
+1. Crie um repositório no [GitHub](https://github.com).
+2. Envie todos os arquivos da pasta do Organizador de Estudos para este repositório.
+
+### Passo 2.2: Conectando com a Vercel
+1. Crie uma conta ou faça login na [Vercel](https://vercel.com).
+2. Clique no botão **"Add New..."** e escolha **"Project"**.
+3. Autorize a Vercel a ler seu GitHub e selecione o repositório do "Organizador de Estudos" clicando em **Import**.
+4. Na tela de configuração de Deploy:
+   - **Framework Preset**: Deixe como `Other`.
+   - **Root Directory**: Deixe como `./` (raiz).
+   - **Build Command**: Deixe em branco.
+5. Clique no botão **Deploy**.
+
+### Passo 2.3: Acessando o Site
+Após alguns segundos, a Vercel terminará o processamento e disponibilizará um link público seguro (HTTPS). Seu Organizador de Estudos estará no ar, conectado com o Supabase e pronto para uso mundial!
 
 ---
 
-## 💾 Gestão de Dados (Backup e Restore)
+## 3. Manutenção e Atualizações
 
-Como a aplicação é 100% *Client-Side* e *Offline-First*:
-* **Armazenamento:** Textos, configurações, cronogramas e dados de rotina ficam no `LocalStorage`.
-* **Arquivos Pesados:** Arquivos PDF, imagens, vídeos de materiais de estudo são guardados no `IndexedDB` do próprio navegador do usuário.
-* **Backup:** O usuário deve usar a função **Exportar Backup** nas configurações da barra lateral para baixar seus dados como um arquivo `.json`. Em um novo dispositivo, ele deve usar a função **Importar Backup**.
-
----
-
-## 🔄 Atualizações do Sistema
-
-Para atualizar a aplicação, basta modificar os arquivos e realizar o upload da nova versão no servidor estático escolhido (fazendo `git push` caso use Vercel/Netlify/GitHub Pages). 
-**Atenção:** Como o navegador dos usuários pode armazenar arquivos CSS/JS em cache, é recomendável usar ferramentas de cache buster (adicionar `?v=1.1` na importação dos scripts no `index.html`) caso haja atualizações importantes de layout ou lógica.
+- **Para atualizar o código:** Toda vez que você modificar um arquivo HTML, CSS ou JS localmente e enviar as atualizações (commit/push) para o GitHub, a Vercel identificará automaticamente e atualizará o site em produção em questão de segundos.
+- **Arquivos Antigos no Cache:** Como a Vercel e o navegador cacheiam (guardam) os arquivos Javascript, sempre que você modificar um arquivo JS importante, é recomendável ir no arquivo `index.html` e alterar o número da versão na importação. Exemplo: `<script src="js/app.js?v=3"></script>`.
