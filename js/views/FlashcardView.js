@@ -135,8 +135,12 @@ class FlashcardView {
 
           <!-- Listagem de Todos os Cartões -->
           <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:20px; box-shadow:var(--shadow-sm); max-height:450px; display:flex; flex-direction:column;">
-            <h3 style="margin:0 0 16px 0; font-size:0.95rem; font-weight:700; color:var(--text); border-bottom:1px solid var(--border); padding-bottom:8px;">
-              📚 Cartões da Matéria (${totalCount})
+            <h3 style="margin:0 0 16px 0; font-size:0.95rem; font-weight:700; color:var(--text); border-bottom:1px solid var(--border); padding-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <span>📚 Cartões da Matéria (${totalCount})</span>
+              ${cards.length > 0 ? `
+              <button class="btn-danger btn-sm" id="btn-delete-all-fc" style="font-size:0.75rem; padding:4px 8px; font-weight:600;">
+                <svg viewBox="0 0 24 24" style="width:12px; height:12px; stroke:currentColor; fill:none; stroke-width:2; margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>Apagar Todos
+              </button>` : ''}
             </h3>
             <div class="fc-list-container" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:4px;">
               ${cards.length === 0 
@@ -228,6 +232,14 @@ class FlashcardView {
           EventBus.emit('ui:deleteFlashcard', { id, subjectId });
         }
       });
+    });
+
+    // Deletar TODOS os Flashcards da matéria
+    this.el.querySelector('#btn-delete-all-fc')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('⚠️ TEM CERTEZA? Isso vai excluir TODOS os flashcards desta matéria de uma vez!')) {
+        EventBus.emit('ui:deleteAllFlashcards', { subjectId });
+      }
     });
   }
 }

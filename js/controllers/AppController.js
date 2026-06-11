@@ -1437,6 +1437,13 @@ class AppController {
       this._render();
     });
 
+    EventBus.on('ui:deleteAllFlashcards', ({ subjectId }) => {
+      const { flashcardModel } = this.models;
+      flashcardModel.deleteBySubject(subjectId);
+      this._toast('🗑️ Todos os flashcards foram excluídos com sucesso.');
+      this._render();
+    });
+
     EventBus.on('ui:scoreFlashcard', ({ cardId, isCorrect, subjectId }) => {
       const { flashcardModel } = this.models;
       flashcardModel.score(cardId, isCorrect);

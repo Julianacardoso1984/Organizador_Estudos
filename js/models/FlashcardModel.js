@@ -77,6 +77,16 @@ class FlashcardModel {
     }
   }
 
+  async deleteBySubject(subjectId) {
+    this.flashcards = this.flashcards.filter(c => c.subjectId !== subjectId);
+    EventBus.emit('flashcards:updated', this.getAll());
+
+    if (window.SupabaseClient) {
+      const { error } = await window.SupabaseClient.from('flashcards').delete().eq('subject_id', subjectId).eq('user_id', window.currentUser.id);
+      if (error) console.error('Erro ao deletar flashcards por matéria no Supabase:', error);
+    }
+  }
+
   /**
    * Atualiza o estado da caixa e data de revisão com base no desempenho do usuário (Algoritmo Leitner).
    */
